@@ -287,6 +287,115 @@ main {
   max-width: 760px;
 }
 
+/* Produtos (funcionario) */
+.produtos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.produtos-filtros input[type="text"],
+.produtos-filtros input:not([type]),
+.produtos-filtros select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.produtos-novo-btn {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.produtos-acoes-linha {
+  display: flex;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+
+.produtos-desativar {
+  color: #c0392b;
+}
+
+.linha-inativa {
+  opacity: 0.55;
+}
+
+.form-produto {
+  max-width: 420px;
+  text-align: left;
+}
+
+.form-produto select {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.nova-categoria {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nova-categoria input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.nova-categoria button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #111;
+  background: #fff;
+  cursor: pointer;
+}
+
+.produto-codigos {
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.produto-codigos ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.form-acoes {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.form-acoes button[type="submit"] {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.form-acoes button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* Promocoes (funcionario) */
 .promo-gerar-btn {
   display: inline-flex;
