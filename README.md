@@ -65,29 +65,39 @@ de deploy).
 
 ## Deploy
 
-Backend no **Railway** (precisa ficar de pé continuamente pro `ENABLE_SCHEDULER`
-funcionar), frontend no **Vercel** (SPA estática, tier gratuito é
-suficiente). Os dois têm integração nativa com GitHub — conectar o repo
-uma vez no dashboard já configura deploy automático a cada push na
-`main`; não precisa de workflow de CD customizado nem de token salvo como
-secret do GitHub.
+Backend no **Render** (tier gratuito), frontend no **Vercel** (SPA
+estática, tier gratuito). Os dois têm integração nativa com GitHub —
+conectar o repo uma vez no dashboard já configura deploy automático a
+cada push na `main`; não precisa de workflow de CD customizado nem de
+token salvo como secret do GitHub.
 
 O CI (`.github/workflows/ci.yml`) roda `pytest` (backend, contra SQLite —
 não toca no Neon de produção) e o build do frontend em todo push/PR, sem
 precisar de nenhum segredo configurado.
 
-**Backend (Railway)**:
-1. [railway.app](https://railway.app) → New Project → Deploy from GitHub repo → escolher este repositório, root directory `backend`.
-2. Railway detecta Python via Nixpacks (usa `backend/Procfile` e `backend/railway.toml` já prontos no repo — comando de start e healthcheck em `/health` já configurados).
-3. Em Variables, configurar (mesmos nomes do `.env.example`): `DATABASE_URL` (o mesmo do Neon), `JWT_SECRET_KEY` (gerar uma nova — **não reaproveitar** a de dev: `python -c "import secrets; print(secrets.token_hex(32))"`), `ENVIRONMENT=production` (o app recusa subir com a chave padrão nesse modo), `CORS_ORIGINS` (a URL do Vercel, ver abaixo — pode deixar `http://localhost:5173` por enquanto e voltar aqui depois de ter a URL do frontend), `GROQ_API_KEY`/`GEMINI_API_KEY`, `ENABLE_SCHEDULER=true`.
-4. Depois do primeiro deploy, rodar as migrations contra o Postgres de produção (uma vez, via shell do Railway ou localmente apontando `DATABASE_URL` pra lá): `alembic upgrade head`.
-5. Anotar a URL pública gerada (ex.: `https://seu-projeto.up.railway.app`) — é o `VITE_API_URL` do frontend.
+> **Tier gratuito do Render "dorme"** depois de ~15min sem requisições —
+> a próxima chamada acorda o serviço com alguns segundos de atraso (cold
+> start). Isso não afeta o botão "Gerar sugestões agora" (só demora um
+> pouco mais na primeira chamada depois de um período parado), mas torna
+> o job diário automático (`ENABLE_SCHEDULER=true`) pouco confiável — por
+> isso o `render.yaml` já deixa `ENABLE_SCHEDULER=false`. Pra automatizar
+> a geração diária de qualquer forma, dá pra trocar o scheduler interno
+> por um cron do GitHub Actions batendo em `POST /promocoes/gerar-agora`
+> (a própria chamada já acorda o serviço). Se preferir um backend que não
+> dorme, `backend/Procfile` e `railway.toml` (Railway, pago) continuam no
+> repo como alternativa.
+
+**Backend (Render)**:
+1. [dashboard.render.com](https://dashboard.render.com) → New → Blueprint → conectar este repositório. O Render lê o `render.yaml` da raiz e já configura build/start/healthcheck sozinho (aponta pra `backend/`, tier free).
+2. Nas variáveis marcadas para preencher na hora: `DATABASE_URL` (a mesma connection string do Neon), `JWT_SECRET_KEY` (gerar uma nova — **não reaproveitar** a de dev: `python -c "import secrets; print(secrets.token_hex(32))"`), `CORS_ORIGINS` (a URL do Vercel — pode deixar `http://localhost:5173` por enquanto e voltar aqui depois), `GROQ_API_KEY`/`GEMINI_API_KEY`.
+3. Depois do primeiro deploy, rodar as migrations contra o Postgres de produção (uma vez, localmente, apontando `DATABASE_URL` pro Neon): `alembic upgrade head`.
+4. Anotar a URL pública gerada (ex.: `https://precificacao-inteligente-api.onrender.com`) — é o `VITE_API_URL` do frontend.
 
 **Frontend (Vercel)**:
 1. [vercel.com](https://vercel.com) → Add New Project → importar o mesmo repositório, root directory `frontend`.
 2. Framework preset: Vite (auto-detectado). `frontend/vercel.json` já cuida do rewrite de rotas do React Router (sem isso, dar refresh em `/funcionario/login` daria 404).
-3. Environment Variable: `VITE_API_URL` = URL do backend no Railway (passo anterior).
-4. Deploy. Depois, voltar no Railway e atualizar `CORS_ORIGINS` com a URL real do Vercel.
+3. Environment Variable: `VITE_API_URL` = URL do backend no Render (passo anterior).
+4. Deploy. Depois, voltar no Render e atualizar `CORS_ORIGINS` com a URL real do Vercel.
 
 ## Estrutura
 

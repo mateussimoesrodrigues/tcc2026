@@ -1,0 +1,42 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec) -- ao criar
+# um servico via "New > Blueprint" apontando pra este repositorio, o
+# Render le este arquivo e configura build/start/healthcheck sozinho.
+# Variaveis marcadas com "sync: false" sao segredos: o Render pede pra
+# preencher na hora (nunca ficam neste arquivo, que e commitado).
+#
+# Tier gratuito do Render "dorme" apos ~15min sem requisicoes -- por isso
+# ENABLE_SCHEDULER fica "false" (o job diario interno nao seria confiavel
+# com o processo dormindo; ver README, secao Deploy, pro alternativa via
+# GitHub Actions se quiser automatizar isso no futuro). O botao
+# "Gerar sugestoes agora" continua funcionando normal, so com um atraso
+# a mais na primeira chamada se o servico tiver dormido (cold start).
+services:
+  - type: web
+    name: precificacao-inteligente-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: ENVIRONMENT
+        value: production
+      - key: ENABLE_SCHEDULER
+        value: "false"
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRE_MINUTES
+        value: "480"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
