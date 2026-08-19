@@ -3,10 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import get_settings
+from app.core.config import get_settings, validar_configuracao_producao
 from app.routers import auth, cart, checkout, price_history, products, promotions, public_catalog, stock
 
 settings = get_settings()
+# Falha rapido no boot se ENVIRONMENT=production estiver com config
+# insegura (ex.: JWT_SECRET_KEY ainda no valor padrao do repositorio).
+validar_configuracao_producao(settings)
 
 
 @asynccontextmanager

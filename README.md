@@ -63,6 +63,32 @@ App sobe em `http://localhost:5173`. Para testar o scanner de câmera num
 celular, é preciso HTTPS (usar um túnel tipo `ngrok` em dev, ou o ambiente
 de deploy).
 
+## Deploy
+
+Backend no **Railway** (precisa ficar de pé continuamente pro `ENABLE_SCHEDULER`
+funcionar), frontend no **Vercel** (SPA estática, tier gratuito é
+suficiente). Os dois têm integração nativa com GitHub — conectar o repo
+uma vez no dashboard já configura deploy automático a cada push na
+`main`; não precisa de workflow de CD customizado nem de token salvo como
+secret do GitHub.
+
+O CI (`.github/workflows/ci.yml`) roda `pytest` (backend, contra SQLite —
+não toca no Neon de produção) e o build do frontend em todo push/PR, sem
+precisar de nenhum segredo configurado.
+
+**Backend (Railway)**:
+1. [railway.app](https://railway.app) → New Project → Deploy from GitHub repo → escolher este repositório, root directory `backend`.
+2. Railway detecta Python via Nixpacks (usa `backend/Procfile` e `backend/railway.toml` já prontos no repo — comando de start e healthcheck em `/health` já configurados).
+3. Em Variables, configurar (mesmos nomes do `.env.example`): `DATABASE_URL` (o mesmo do Neon), `JWT_SECRET_KEY` (gerar uma nova — **não reaproveitar** a de dev: `python -c "import secrets; print(secrets.token_hex(32))"`), `ENVIRONMENT=production` (o app recusa subir com a chave padrão nesse modo), `CORS_ORIGINS` (a URL do Vercel, ver abaixo — pode deixar `http://localhost:5173` por enquanto e voltar aqui depois de ter a URL do frontend), `GROQ_API_KEY`/`GEMINI_API_KEY`, `ENABLE_SCHEDULER=true`.
+4. Depois do primeiro deploy, rodar as migrations contra o Postgres de produção (uma vez, via shell do Railway ou localmente apontando `DATABASE_URL` pra lá): `alembic upgrade head`.
+5. Anotar a URL pública gerada (ex.: `https://seu-projeto.up.railway.app`) — é o `VITE_API_URL` do frontend.
+
+**Frontend (Vercel)**:
+1. [vercel.com](https://vercel.com) → Add New Project → importar o mesmo repositório, root directory `frontend`.
+2. Framework preset: Vite (auto-detectado). `frontend/vercel.json` já cuida do rewrite de rotas do React Router (sem isso, dar refresh em `/funcionario/login` daria 404).
+3. Environment Variable: `VITE_API_URL` = URL do backend no Railway (passo anterior).
+4. Deploy. Depois, voltar no Railway e atualizar `CORS_ORIGINS` com a URL real do Vercel.
+
 ## Estrutura
 
 ```
@@ -82,6 +108,10 @@ frontend/src/
   funcionario/   # área do funcionário: login, estoque, produtos, promoções, histórico de preços
   api/           # client HTTP
   context/       # estado global (carrinho, autenticação)
+
+.github/workflows/ci.yml   # pytest + build do frontend em todo push/PR
+backend/Procfile, railway.toml, .python-version   # deploy no Railway
+frontend/vercel.json                              # deploy no Vercel (rewrite de rotas)
 ```
 
 ## Status
@@ -120,24 +150,35 @@ frontend/src/
   `ai/rules.py` calcula sinais determinísticos por produto (dias sem
   venda, giro, dias de estoque restante, margem, sazonalidade simples) a
   partir do histórico real de `movimentacao_estoque`; `ai/llm_provider.py`
-  chama Groq (Llama 3.3 70B) via REST direto, com fallback automático pro
-  Gemini 2.5 Flash, valida a resposta (JSON estrito, desconto 0-70%) e
-  nunca deixa uma falha de IA travar os demais produtos;
-  `services/promotion_service.py` orquestra tudo e `services/price_service.py`
-  é o único lugar que de fato muda preço (transacional, sempre grava
-  histórico); `POST /promocoes/gerar-agora` (sob demanda, essencial pra
-  demo), `GET /promocoes`, aprovar/rejeitar, `GET /historico-precos` —
-  todos exigem funcionário logado. Job diário (`jobs/scheduler.py`,
+  chama Groq (`openai/gpt-oss-120b` — Llama 3.3 70B, escolha original do
+  plano, foi descontinuado pela Groq) via REST direto, com fallback
+  automático pro Gemini 2.5 Flash, valida a resposta (JSON estrito,
+  desconto 0-70%) e nunca deixa uma falha de IA travar os demais
+  produtos; usa `truststore` pra funcionar em máquinas Windows com
+  antivírus/proxy que faz inspeção SSL. `services/promotion_service.py`
+  orquestra tudo e `services/price_service.py` é o único lugar que de
+  fato muda preço (transacional, sempre grava histórico);
+  `POST /promocoes/gerar-agora` (sob demanda, essencial pra demo),
+  `GET /promocoes`, aprovar/rejeitar, `GET /historico-precos` — todos
+  exigem funcionário logado. Job diário (`jobs/scheduler.py`,
   APScheduler) fica desligado por padrão (`ENABLE_SCHEDULER=false`) pra
-  não bater na API real durante testes; liga só em produção. Testado
-  end-to-end contra o Neon com o LLM mockado (60 testes automatizados) e
-  também contra a API real do backend rodando — sem `GROQ_API_KEY`/
-  `GEMINI_API_KEY` ainda configuradas, então a geração funciona e reporta
-  a falha de IA por produto sem quebrar nada; falta só colar as chaves
-  gratuitas no `.env` (ver `.env.example`) pra ver as sugestões de
-  verdade sendo geradas. Frontend: telas Promoções (gerar sob demanda,
-  aprovar/rejeitar com observação) e Histórico de Preços funcionais.
-- **Próxima**: Fase 5 — deploy em nuvem + hardening (CORS restrito,
-  variáveis de produção, CI/CD).
+  não bater na API real durante testes; liga só em produção. Testado de
+  ponta a ponta contra o Neon e a API real do Groq (63 testes
+  automatizados com o LLM mockado + geração/aprovação/rejeição reais no
+  navegador). Frontend: telas Promoções (gerar sob demanda com spinner de
+  progresso, aprovar/rejeitar com observação) e Histórico de Preços
+  funcionais.
+- **Fase 5 (deploy + hardening)**: preparada — `.github/workflows/ci.yml`
+  (pytest + build do frontend em todo push/PR, sem segredos); config de
+  deploy pronta pro Railway (backend: `Procfile`, `railway.toml`,
+  `.python-version`) e pro Vercel (frontend: `vercel.json`, rewrite de
+  rotas do React Router); checagem de segurança no boot
+  (`validar_configuracao_producao`) que recusa subir com
+  `ENVIRONMENT=production` e `JWT_SECRET_KEY` ainda no valor padrão do
+  repositório. Passo a passo completo na seção "Deploy" acima. **Falta**:
+  criar as contas/projetos no Railway e no Vercel e conectar o repositório
+  — isso só o dono do projeto pode fazer.
+- **Próxima**: Fase 6 — polimento para a banca (testes em iOS/Android
+  reais, roteiro de demo, redação da justificativa técnica da IA).
 
 Roadmap completo das próximas fases no plano de implementação.

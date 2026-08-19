@@ -1,0 +1,13 @@
+# Config explicita de deploy no Railway (alem do Procfile). O builder
+# Nixpacks detecta Python sozinho a partir de requirements.txt +
+# .python-version; isso aqui so deixa o comando de start e o healthcheck
+# explicitos em vez de depender 100% de auto-deteccao.
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

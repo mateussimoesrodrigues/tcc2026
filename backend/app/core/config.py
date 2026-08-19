@@ -65,6 +65,27 @@ class Settings(BaseSettings):
         return not self.database_url
 
 
+_JWT_SECRET_PADRAO = Settings.model_fields["jwt_secret_key"].default
+
+
+class ConfiguracaoProducaoInvalidaError(RuntimeError):
+    """Ambiente marcado como producao (ENVIRONMENT=production) mas com uma
+    configuracao insegura -- melhor falhar rapido no startup do que subir
+    e descobrir depois (ex.: JWT_SECRET_KEY no valor padrao, que e publico
+    no repositorio, deixaria qualquer um forjar login de funcionario)."""
+
+
+def validar_configuracao_producao(settings: Settings) -> None:
+    if settings.environment != "production":
+        return
+    if settings.jwt_secret_key == _JWT_SECRET_PADRAO:
+        raise ConfiguracaoProducaoInvalidaError(
+            "JWT_SECRET_KEY continua no valor padrao em ENVIRONMENT=production. "
+            "Gere uma chave real (python -c \"import secrets; print(secrets.token_hex(32))\") "
+            "e configure a variavel de ambiente antes de subir."
+        )
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
