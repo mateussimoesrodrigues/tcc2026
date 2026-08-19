@@ -1,14 +1,21 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { funcionario, carregando, login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  // Ja autenticado (ex.: clicou em "Area do funcionario" de novo com uma
+  // sessao ainda valida) -- manda direto pro dashboard em vez de mostrar
+  // o formulario de novo por cima da navegacao do funcionario.
+  if (!carregando && funcionario) {
+    return <Navigate to="/funcionario" replace />;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
