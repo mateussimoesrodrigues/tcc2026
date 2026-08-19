@@ -1,38 +1,58 @@
+/* ===========================================================================
+   Componentes da interface. Tokens de cor/tipografia/sombra vem do
+   index.css. Nenhuma classe nova foi inventada aqui: todas correspondem
+   as que ja existem nos componentes React.
+   =========================================================================== */
+
+/* --- Shell e navegacao --------------------------------------------------- */
+
 .app-shell {
-  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
 }
 
 .app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #ddd;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.7rem clamp(0.75rem, 3vw, 1.5rem);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.app-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .app-nav a {
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-pill);
   text-decoration: none;
-  color: inherit;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.94rem;
   white-space: nowrap;
+  transition: background var(--transition), color var(--transition);
+}
+
+.app-nav a:hover {
+  background: var(--clay-50);
+  color: var(--clay-700);
 }
 
 .app-nav a.active {
-  background: #eee;
+  background: var(--clay-600);
+  color: var(--text-inverse);
   font-weight: 600;
-}
-
-main {
-  flex: 1;
-  padding: 1rem;
-}
-
-.page {
-  max-width: 640px;
-  margin: 0 auto;
+  box-shadow: var(--shadow-xs);
 }
 
 .app-nav-spacer {
@@ -40,98 +60,317 @@ main {
 }
 
 .app-nav-usuario {
-  color: #666;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
   white-space: nowrap;
+  padding-left: 0.5rem;
+}
+
+main {
+  flex: 1;
+  padding: clamp(1.25rem, 4vw, 2.25rem) clamp(0.9rem, 3vw, 1.5rem) 3rem;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.page-wide {
+  max-width: 960px;
+}
+
+/* Subtitulo logo abaixo do h1 da pagina. `:not([class])` para nao roubar a
+   cor de <p className="erro"> / "alerta", que em algumas telas (Checkout,
+   Dashboard) sao o primeiro paragrafo depois do titulo. */
+.page > h1 + p:not([class]) {
+  color: var(--text-muted);
+  margin-bottom: 1.4rem;
+  max-width: 62ch;
+}
+
+/* --- Botoes -------------------------------------------------------------- */
+
+/* Base compartilhada pelos botoes solidos (acao primaria) das varias telas */
+.form button:not(.link-button),
+.carrinho-finalizar,
+.produtos-novo-btn,
+.promo-gerar-btn,
+.promo-acoes button,
+.form-acoes button[type="submit"],
+.scanner-manual-form button,
+.nova-categoria button,
+.carrinho-item-qtd button,
+.scanner-ir-carrinho {
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+    transform var(--transition), box-shadow var(--transition), color var(--transition);
+}
+
+.form button:not(.link-button),
+.carrinho-finalizar,
+.produtos-novo-btn,
+.promo-gerar-btn,
+.promo-acoes button,
+.form-acoes button[type="submit"],
+.scanner-manual-form button {
+  background: var(--clay-600);
+  color: var(--text-inverse);
+  border: 1px solid var(--clay-600);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
+}
+
+.form button:not(.link-button):hover:not(:disabled),
+.carrinho-finalizar:hover:not(:disabled),
+.produtos-novo-btn:hover:not(:disabled),
+.promo-gerar-btn:hover:not(:disabled),
+.promo-acoes button:hover:not(:disabled),
+.form-acoes button[type="submit"]:hover:not(:disabled),
+.scanner-manual-form button:hover:not(:disabled) {
+  background: var(--clay-700);
+  border-color: var(--clay-700);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.form button:not(.link-button):active:not(:disabled),
+.carrinho-finalizar:active:not(:disabled),
+.produtos-novo-btn:active:not(:disabled),
+.promo-gerar-btn:active:not(:disabled),
+.promo-acoes button:active:not(:disabled),
+.form-acoes button[type="submit"]:active:not(:disabled),
+.scanner-manual-form button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+.form button:not(.link-button):disabled,
+.carrinho-finalizar:disabled,
+.produtos-novo-btn:disabled,
+.promo-gerar-btn:disabled,
+.promo-acoes button:disabled,
+.form-acoes button[type="submit"]:disabled,
+.scanner-manual-form button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 .link-button {
   background: none;
   border: none;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.15rem;
   cursor: pointer;
-  color: inherit;
-  text-decoration: underline;
+  color: var(--clay-700);
   font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  border-radius: 4px;
+  transition: color var(--transition);
 }
+
+.link-button:hover {
+  color: var(--clay-800);
+}
+
+/* --- Formularios --------------------------------------------------------- */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  max-width: 320px;
+  gap: 0.9rem;
+  max-width: 340px;
 }
 
 .form label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.form input {
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.form button {
-  padding: 0.6rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-}
-
-.form button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.erro {
-  color: #c0392b;
-}
-
-.alerta {
-  color: #b8860b;
+  gap: 0.35rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+/* :not([type="checkbox"]) em toda parte: as caixas de selecao ficam dentro
+   de .form e de .produtos-filtros tambem, e herdariam padding/borda de
+   campo de texto se nao fossem excluidas aqui. */
+.form input:not([type="checkbox"]),
+.form select,
+.form-produto select,
+.produtos-filtros input:not([type="checkbox"]),
+.produtos-filtros select,
+.scanner-manual-form input,
+.nova-categoria input,
+.promo-observacao {
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form input:not([type="checkbox"])::placeholder,
+.produtos-filtros input:not([type="checkbox"])::placeholder,
+.scanner-manual-form input::placeholder,
+.nova-categoria input::placeholder,
+.promo-observacao::placeholder {
+  color: var(--text-soft);
+}
+
+.form input:not([type="checkbox"]):focus,
+.form select:focus,
+.form-produto select:focus,
+.produtos-filtros input:not([type="checkbox"]):focus,
+.produtos-filtros select:focus,
+.scanner-manual-form input:focus,
+.nova-categoria input:focus,
+.promo-observacao:focus {
+  outline: none;
+  border-color: var(--clay-500);
+  box-shadow: var(--ring);
+}
+
+.form button:not(.link-button) {
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+.form-acoes {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.form-acoes button[type="submit"] {
+  padding: 0.65rem 1.35rem;
+  font-size: 0.98rem;
+  margin-top: 0;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   margin: 0.75rem 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 500;
 }
+
+.checkbox-label input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--clay-600);
+  cursor: pointer;
+}
+
+/* --- Mensagens de estado ------------------------------------------------- */
+
+.erro {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.alerta {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+/* --- Tabelas ------------------------------------------------------------- */
 
 .tabela-wrapper {
   overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 
 .tabela-estoque {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
-.tabela-estoque th,
-.tabela-estoque td {
+.tabela-estoque th {
   text-align: left;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  padding: 0.75rem 0.9rem;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-.tabela-estoque tr.linha-baixa {
-  background: #fff4e5;
+.tabela-estoque td {
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-/* Scanner (area do cliente) */
+.tabela-estoque tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabela-estoque tbody tr {
+  transition: background var(--transition);
+}
+
+.tabela-estoque tbody tr:hover {
+  background: var(--clay-50);
+}
+
+.tabela-estoque tr.linha-baixa {
+  background: var(--warning-bg);
+}
+
+.tabela-estoque tr.linha-baixa:hover {
+  background: #fbeccd;
+}
+
+.tabela-estoque tr.linha-baixa td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.linha-inativa {
+  opacity: 0.5;
+}
+
+/* --- Scanner (area do cliente) ------------------------------------------- */
+
 .scanner-camera {
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 }
 
 .scanner-camera-reader {
@@ -139,9 +378,14 @@ main {
   max-width: 400px;
   min-height: 280px;
   margin: 0 auto;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #000;
+  background: var(--clay-900);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* html5-qrcode injeta o <video> direto nesse container -- forcamos ele a
@@ -151,75 +395,132 @@ main {
 .scanner-camera-reader video {
   width: 100% !important;
   height: auto !important;
+  display: block;
+}
+
+/* :not(.erro) para nao sobrescrever a cor da mensagem de falha de camera
+   (seletor mais especifico venceria o vermelho de .erro). */
+.scanner-camera > p:not(.erro) {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.scanner-camera > .erro {
+  margin-top: 0.85rem;
 }
 
 .scanner-manual {
-  margin: 0.75rem 0;
-  font-size: 0.9rem;
+  margin: 1rem 0;
+  font-size: 0.92rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.95rem;
 }
 
 .scanner-manual summary {
   cursor: pointer;
-  color: #555;
+  color: var(--clay-700);
+  font-weight: 500;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.scanner-manual summary::-webkit-details-marker {
+  display: none;
+}
+
+.scanner-manual summary::before {
+  content: "＋";
+  font-size: 0.9em;
+  color: var(--clay-500);
+  transition: transform var(--transition);
+}
+
+.scanner-manual[open] summary::before {
+  transform: rotate(45deg);
 }
 
 .scanner-manual-form {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 0.85rem;
 }
 
 .scanner-manual-form input {
   flex: 1;
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  min-width: 0;
 }
 
 .scanner-manual-form button {
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-}
-
-.scanner-manual-form button:disabled {
-  opacity: 0.6;
-  cursor: default;
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
 }
 
 .scanner-resultado {
   margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  animation: surgir 240ms ease-out;
+}
+
+.scanner-resultado p {
+  margin: 0.3rem 0 0;
 }
 
 .scanner-resultado-ok {
-  background: #e7f6ec;
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: #2f4d2e;
+  box-shadow: inset 3px 0 0 var(--success);
 }
 
 .scanner-resultado-erro {
-  background: #fdecea;
-  color: #c0392b;
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scanner-ir-carrinho {
-  padding: 0.6rem 1rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
   font-size: 1rem;
-  border-radius: 6px;
-  border: 1px solid #111;
-  background: #fff;
-  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--clay-600);
+  background: var(--surface);
+  color: var(--clay-700);
+  margin-top: 0.5rem;
 }
 
-/* Carrinho */
+.scanner-ir-carrinho:hover {
+  background: var(--clay-50);
+  border-color: var(--clay-700);
+}
+
+/* --- Carrinho ------------------------------------------------------------ */
+
 .carrinho-lista {
   list-style: none;
   padding: 0;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -229,117 +530,237 @@ main {
   display: grid;
   grid-template-columns: 1fr auto auto auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+
+.carrinho-item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong);
+}
+
+.carrinho-item-info {
+  min-width: 0;
+}
+
+.carrinho-item-info > div {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
 }
 
 .carrinho-item-detalhe {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
 .carrinho-item-qtd {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem;
 }
 
 .carrinho-item-qtd button {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #fff;
-  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--clay-700);
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: var(--shadow-xs);
+}
+
+.carrinho-item-qtd button:hover {
+  background: var(--clay-600);
+  color: var(--text-inverse);
+}
+
+.carrinho-item-qtd span {
+  min-width: 1.6rem;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .carrinho-item-subtotal {
   font-weight: 600;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--clay-800);
 }
 
 .carrinho-item-remover {
   font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.carrinho-item-remover:hover {
+  color: var(--danger);
 }
 
 .carrinho-total {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   font-size: 1.1rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid #ddd;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 1rem;
+}
+
+.carrinho-total span {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.carrinho-total strong {
+  font-family: var(--heading);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .carrinho-finalizar {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem;
+  font-size: 1.02rem;
+  border-radius: var(--radius-sm);
+}
+
+/* --- Checkout ------------------------------------------------------------ */
+
+/* Cara de comprovante/senha de caixa: fundo claro, borda tracejada e o
+   numero grande com espacamento largo, pra ser lido de longe no balcao. */
+.checkout-numero {
+  font-family: var(--heading);
+  font-size: clamp(2.4rem, 1.8rem + 3vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--clay-700);
+  margin: 1.25rem 0;
+  padding: 1.5rem 1rem;
+  background: var(--surface);
+  border: 2px dashed var(--clay-300);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Os botoes de navegacao do Checkout ("Escanear novo produto", "Voltar ao
+   carrinho") nao tem className no componente. `:not([class])` alcanca
+   exatamente eles, sem encostar nos botoes com classe que tambem sao
+   filhos diretos de .page (.promo-gerar-btn, .scanner-ir-carrinho). */
+.page > button:not([class]) {
+  font-family: inherit;
+  font-weight: 600;
   font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
+  padding: 0.75rem 1.35rem;
+  margin-top: 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--clay-600);
+  background: var(--surface);
+  color: var(--clay-700);
   cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+    transform var(--transition), box-shadow var(--transition);
 }
 
-.page-wide {
-  max-width: 760px;
+.page > button:not([class]):hover {
+  background: var(--clay-50);
+  border-color: var(--clay-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Produtos (funcionario) */
+.page > button:not([class]):active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Lista de itens sem estoque suficiente na tela de checkout */
+.page > ul:not([class]) {
+  margin: 0.75rem 0 1.1rem;
+  padding: 0.85rem 1rem 0.85rem 2.1rem;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  color: #6f5010;
+  font-size: 0.93rem;
+}
+
+.page > ul:not([class]) li + li {
+  margin-top: 0.3rem;
+}
+
+/* --- Produtos (funcionario) ---------------------------------------------- */
+
 .produtos-filtros {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
+  padding: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
 }
 
-.produtos-filtros input[type="text"],
-.produtos-filtros input:not([type]),
-.produtos-filtros select {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font: inherit;
+.produtos-filtros input:not([type="checkbox"]) {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+
+.produtos-filtros .checkbox-label {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .produtos-novo-btn {
   margin-left: auto;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 .produtos-acoes-linha {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.75rem;
   white-space: nowrap;
 }
 
 .produtos-desativar {
-  color: #c0392b;
+  color: var(--danger);
 }
 
-.linha-inativa {
-  opacity: 0.55;
+.produtos-desativar:hover {
+  color: #8f342a;
 }
 
 .form-produto {
-  max-width: 420px;
+  max-width: 440px;
   text-align: left;
-}
-
-.form-produto select {
-  padding: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-family: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  box-shadow: var(--shadow-sm);
 }
 
 .nova-categoria {
@@ -349,70 +770,69 @@ main {
 
 .nova-categoria input {
   flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font: inherit;
+  min-width: 0;
 }
 
-.nova-categoria button {
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #111;
-  background: #fff;
-  cursor: pointer;
+/* :not(.link-button) so pra empatar a especificidade de
+   `.form button:not(.link-button)` -- sem isso o botao herdaria o estilo
+   solido primario, e aqui ele deve ser secundario (contornado). */
+.nova-categoria button:not(.link-button) {
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--clay-600);
+  background: var(--surface);
+  color: var(--clay-700);
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.nova-categoria button:not(.link-button):hover {
+  background: var(--clay-50);
+  border-color: var(--clay-700);
+  transform: none;
+  box-shadow: none;
 }
 
 .produto-codigos {
-  border-top: 1px solid #eee;
-  padding-top: 0.75rem;
-  margin-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.produto-codigos strong {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 .produto-codigos ul {
   list-style: none;
   padding: 0;
-  margin: 0.5rem 0;
-}
-
-.form-acoes {
+  margin: 0.6rem 0 0.85rem;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
-.form-acoes button[type="submit"] {
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
+.produto-codigos li {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  color: var(--clay-800);
 }
 
-.form-acoes button[type="submit"]:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
+/* --- Promocoes (funcionario) --------------------------------------------- */
 
-/* Promocoes (funcionario) */
 .promo-gerar-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.1rem;
+  gap: 0.55rem;
+  padding: 0.7rem 1.25rem;
   font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-}
-
-.promo-gerar-btn:disabled {
-  opacity: 0.85;
-  cursor: default;
+  border-radius: var(--radius-sm);
 }
 
 .spinner {
@@ -423,6 +843,7 @@ main {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -432,143 +853,218 @@ main {
 }
 
 .promo-gerando-aviso {
-  margin: 0.6rem 0 0;
-  color: #666;
+  margin: 0.75rem 0 0;
+  color: var(--text-muted);
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .promo-resumo-geracao {
-  margin: 0.75rem 0 0;
-  color: #444;
+  margin: 0.85rem 0 0;
+  padding: 0.7rem 0.9rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-sm);
+  color: #2f4d2e;
+  font-size: 0.92rem;
+  font-weight: 500;
 }
 
 .promo-falhas {
-  margin: 0.5rem 0 0;
-  padding-left: 1.25rem;
-  color: #c0392b;
-  font-size: 0.9rem;
+  margin: 0.6rem 0 0;
+  padding: 0.7rem 0.9rem 0.7rem 1.9rem;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 0.87rem;
 }
 
 .promo-lista {
   list-style: none;
   padding: 0;
-  margin: 1.25rem 0 0;
+  margin: 1.5rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .promo-card {
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.25rem;
   text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.promo-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .promo-card-header {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.promo-card-header strong {
+  font-family: var(--heading);
+  font-size: 1.12rem;
 }
 
 .promo-detalhe {
-  color: #666;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 400;
 }
 
 .badge-prioridade {
   margin-left: auto;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
 }
 
 .badge-prioridade-alta {
-  background: #fdecea;
-  color: #c0392b;
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .badge-prioridade-media {
-  background: #fff4e5;
-  color: #b8860b;
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
 }
 
 .badge-prioridade-baixa {
-  background: #eef2f5;
-  color: #555;
+  background: var(--surface-muted);
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .promo-sinais {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.85rem;
-  margin: 0.4rem 0;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 .promo-preco {
   font-size: 1.05rem;
-  margin: 0.4rem 0;
+  margin: 0.7rem 0;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
+.promo-preco strong {
+  font-family: var(--heading);
+  font-size: 1.3rem;
+  color: var(--clay-700);
+}
+
+/* Citacao da justificativa escrita pela IA -- barra lateral em tom de
+   barro reforca que e "fala" do modelo, nao texto do sistema. */
 .promo-justificativa {
   font-style: italic;
-  color: #333;
-  margin: 0.4rem 0;
+  color: var(--text);
+  margin: 0.7rem 0;
+  padding-left: 0.85rem;
+  border-left: 3px solid var(--clay-300);
+  line-height: 1.5;
 }
 
 .promo-modelo {
-  color: #999;
-  font-size: 0.75rem;
-  margin: 0 0 0.5rem;
+  color: var(--text-soft);
+  font-size: 0.73rem;
+  margin: 0 0 0.85rem;
+  font-family: var(--mono);
 }
 
 .promo-observacao {
   width: 100%;
-  box-sizing: border-box;
-  padding: 0.5rem;
-  font: inherit;
-  border: 1px solid #ccc;
-  border-radius: 6px;
   resize: vertical;
-  min-height: 2.2rem;
-  margin-bottom: 0.5rem;
+  min-height: 2.6rem;
+  margin-bottom: 0.75rem;
 }
 
 .promo-acoes {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .promo-acoes button {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.94rem;
 }
 
 .promo-acoes button.promo-rejeitar {
-  background: #fff;
-  color: #c0392b;
-  border: 1px solid #c0392b;
+  background: var(--surface);
+  color: var(--danger);
+  border: 1.5px solid var(--danger-border);
+  box-shadow: none;
 }
 
-.promo-acoes button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.promo-acoes button.promo-rejeitar:hover:not(:disabled) {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
-/* Checkout */
-.checkout-numero {
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-align: center;
-  margin: 1rem 0;
-  padding: 1rem;
-  background: #f4f4f4;
-  border-radius: 8px;
+/* --- Responsivo ---------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  /* Carrinho: em tela estreita as 4 colunas nao cabem lado a lado --
+     nome ocupa a linha toda, quantidade e subtotal dividem a seguinte. */
+  .carrinho-item {
+    grid-template-columns: 1fr auto;
+    gap: 0.7rem;
+  }
+
+  .carrinho-item-info {
+    grid-column: 1 / -1;
+  }
+
+  .carrinho-item-subtotal {
+    text-align: right;
+    font-size: 1.05rem;
+  }
+
+  .carrinho-item-remover {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding-left: 0;
+  }
+
+  .produtos-novo-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .produtos-filtros input,
+  .produtos-filtros select {
+    flex: 1 1 100%;
+  }
+
+  .promo-acoes button {
+    flex: 1;
+  }
+
+  .form {
+    max-width: none;
+  }
 }

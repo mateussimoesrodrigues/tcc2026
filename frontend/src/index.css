@@ -1,95 +1,181 @@
+/* ===========================================================================
+   Design tokens + base.
+
+   Identidade visual: loja de armarinho/artesanato -- paleta quente de barro
+   (terracota), fundo cor de linho, verde-sálvia para estados positivos e
+   dourado para alertas. Cantos arredondados e sombras suaves de tom quente
+   passam a sensação tátil/artesanal, em vez do cinza-azulado frio padrão de
+   dashboard.
+
+   Tema fixo em modo claro (nao segue prefers-color-scheme): e um app usado
+   no balcao da loja e no celular do cliente, entao previsibilidade visual
+   vale mais que adaptar ao tema do sistema.
+   =========================================================================== */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Barro / terracota -- cor primaria (acoes, links, destaques) */
+  --clay-50: #fdf6f2;
+  --clay-100: #f9e9e0;
+  --clay-200: #f1d5c6;
+  --clay-300: #e4b49b;
+  --clay-400: #d38f6f;
+  --clay-500: #c0714f;
+  --clay-600: #a85c3d;
+  --clay-700: #8a4931;
+  --clay-800: #663828;
+  --clay-900: #422620;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Neutros quentes (nao cinza puro -- puxam pro bege/linho) */
+  --bg: #faf6f1;
+  --surface: #ffffff;
+  --surface-muted: #f6efe8;
+  --border: #ebdfd4;
+  --border-strong: #dccbbb;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light;
+  --text: #3f342e;
+  --text-muted: #7d6b5f;
+  --text-soft: #a39285;
+  --text-inverse: #fffaf6;
+
+  /* Estados */
+  --success: #4f7a4d;
+  --success-bg: #edf4ec;
+  --success-border: #cfe1cd;
+
+  --warning: #9a6f16;
+  --warning-bg: #fdf3df;
+  --warning-border: #f0dfb8;
+
+  --danger: #b04437;
+  --danger-bg: #fbeae7;
+  --danger-border: #f2cec8;
+
+  /* Sombras com tom quente (nao preto puro) */
+  --shadow-xs: 0 1px 2px rgba(66, 38, 32, 0.06);
+  --shadow-sm: 0 1px 2px rgba(66, 38, 32, 0.05), 0 2px 6px rgba(66, 38, 32, 0.05);
+  --shadow-md: 0 2px 4px rgba(66, 38, 32, 0.05), 0 8px 20px rgba(66, 38, 32, 0.08);
+  --shadow-lg: 0 4px 8px rgba(66, 38, 32, 0.06), 0 16px 36px rgba(66, 38, 32, 0.1);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --sans: "DM Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: "Fraunces", Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --ring: 0 0 0 3px var(--clay-200);
+  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Tema fixo em modo claro -- app interno (loja/funcionario), nao segue
-   o prefers-color-scheme do sistema para evitar telas escuras
-   inesperadas em formularios/inputs que nao foram desenhados pro dark. */
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
+  background-color: var(--bg);
+  /* Textura sutil de "linho": dois gradientes radiais quase imperceptiveis
+     que tiram a chapadao do fundo solido sem virar ruido visual. */
+  background-image:
+    radial-gradient(circle at 15% 12%, rgba(224, 180, 155, 0.16), transparent 42%),
+    radial-gradient(circle at 85% 8%, rgba(214, 196, 168, 0.14), transparent 38%);
+  background-attachment: fixed;
 }
 
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Tipografia ---------------------------------------------------------- */
+
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  color: var(--clay-900);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+  font-size: clamp(1.6rem, 1.32rem + 1.2vw, 2.05rem);
+  line-height: 1.18;
+  margin: 0 0 0.4rem;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+h2 {
+  font-size: 1.3rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0 0 0.85rem;
+  text-wrap: pretty;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--clay-700);
+  text-underline-offset: 2px;
+}
+
+strong {
+  font-weight: 600;
+  color: var(--clay-900);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 0.88em;
+  padding: 0.15em 0.42em;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  color: var(--clay-800);
+}
+
+/* --- Acessibilidade ------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--clay-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeita quem pediu menos animacao no sistema (a11y): mantem tudo
+   funcionando, so corta movimento -- inclusive o spinner da geracao de
+   promocoes, que vira um pulso estatico em vez de girar. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
