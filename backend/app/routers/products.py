@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_funcionario
 from app.models.categoria import Categoria
 from app.schemas.categoria import CategoriaCreate, CategoriaRead
 from app.schemas.produto import (
@@ -19,7 +20,11 @@ from app.services.exceptions import (
     ProdutoNaoEncontradoError,
 )
 
-router = APIRouter(tags=["produtos"])
+router = APIRouter(tags=["produtos"], dependencies=[Depends(get_current_funcionario)])
+# Nota: estes endpoints sao de gestao (area do funcionario), por isso
+# exigem login. A leitura publica de catalogo para o scanner do cliente
+# (Fase 3) ganha um router separado (public_catalog.py) que devolve so os
+# campos necessarios (nome, preco vigente), sem estoque/custo.
 
 
 @router.get("/categorias", response_model=list[CategoriaRead])

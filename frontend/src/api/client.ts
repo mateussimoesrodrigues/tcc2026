@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 const CART_SESSION_HEADER = "X-Cart-Session";
 const CART_SESSION_STORAGE_KEY = "cart_session_id";
 
-function getCartSessionId(): string | null {
+export function getCartSessionId(): string | null {
   return localStorage.getItem(CART_SESSION_STORAGE_KEY);
 }
 
@@ -22,6 +22,25 @@ function getAuthToken(): string | null {
 interface RequestOptions extends RequestInit {
   auth?: boolean; // inclui o JWT do funcionario
   cartSession?: boolean; // inclui o header de sessao de carrinho do cliente
+}
+
+// Erro estruturado: alem da mensagem, guarda o status HTTP e o corpo (ja
+// parseado como JSON quando possivel) -- usado, por exemplo, no checkout
+// para ler a lista de itens com estoque insuficiente de um 409.
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, bodyText: string) {
+    super(`Erro ${status}: ${bodyText}`);
+    this.name = "ApiError";
+    this.status = status;
+    try {
+      this.body = JSON.parse(bodyText);
+    } catch {
+      this.body = bodyText;
+    }
+  }
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -42,7 +61,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Erro ${response.status} em ${path}: ${body}`);
+    throw new ApiError(response.status, body);
   }
 
   if (response.status === 204) return undefined as T;

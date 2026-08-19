@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_funcionario
+from app.models.funcionario import Funcionario
 from app.schemas.estoque import AjusteEstoqueCreate, EstoqueItemRead, MovimentacaoEstoqueRead
 from app.services import stock_service
 from app.services.exceptions import ProdutoNaoEncontradoError
 
-router = APIRouter(prefix="/estoque", tags=["estoque"])
+router = APIRouter(prefix="/estoque", tags=["estoque"], dependencies=[Depends(get_current_funcionario)])
 
 
 @router.get("", response_model=list[EstoqueItemRead])
@@ -15,11 +17,14 @@ def listar_estoque(somente_baixo: bool = False, db: Session = Depends(get_db)):
 
 
 @router.post("/{produto_id}/ajuste", response_model=EstoqueItemRead)
-def ajustar_estoque(produto_id: int, dados: AjusteEstoqueCreate, db: Session = Depends(get_db)):
-    # TODO Fase 2: passar o funcionario autenticado (funcionario_id) para
-    # registrar quem fez o ajuste, quando o login existir.
+def ajustar_estoque(
+    produto_id: int,
+    dados: AjusteEstoqueCreate,
+    db: Session = Depends(get_db),
+    funcionario: Funcionario = Depends(get_current_funcionario),
+):
     try:
-        stock_service.ajustar_estoque(db, produto_id, dados)
+        stock_service.ajustar_estoque(db, produto_id, dados, funcionario_id=funcionario.id)
     except ProdutoNaoEncontradoError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto nao encontrado")
 

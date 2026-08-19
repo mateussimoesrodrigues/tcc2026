@@ -18,9 +18,9 @@ class MovimentacaoEstoque(Base):
     regras da IA de promocoes (Fase 4) para calcular giro e dias sem venda,
     e tambem alimenta o historico de vendas simulado do seed.
 
-    pedido_id e funcionario_id ainda nao tem FK de verdade: as tabelas
-    `pedido` (Fase 3) e `funcionario` (Fase 2) nao existem ainda. Quando
-    forem criadas, uma migration adiciona a constraint via ALTER TABLE.
+    `pedido_id` e preenchido nas saidas geradas pelo checkout (Fase 3);
+    `funcionario_id`, nos ajustes manuais feitos pela area do funcionario
+    (Fase 2). Ambos nullable porque nem toda movimentacao tem os dois.
     """
 
     __tablename__ = "movimentacao_estoque"
@@ -31,8 +31,8 @@ class MovimentacaoEstoque(Base):
     tipo: Mapped[TipoMovimentacao] = mapped_column(Enum(TipoMovimentacao), nullable=False)
     quantidade: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    pedido_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    funcionario_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pedido_id: Mapped[int | None] = mapped_column(ForeignKey("pedido.id"), nullable=True)
+    funcionario_id: Mapped[int | None] = mapped_column(ForeignKey("funcionario.id"), nullable=True)
 
     criado_em: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False

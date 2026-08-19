@@ -27,10 +27,29 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from app.core.database import Base, SessionLocal, engine
-from app.models import Categoria, Estoque, MovimentacaoEstoque, Produto, ProdutoCodigo
+from app.core.security import hash_senha
+from app.models import (
+    CarrinhoItem,
+    Categoria,
+    Estoque,
+    Funcionario,
+    MovimentacaoEstoque,
+    Pedido,
+    PedidoItem,
+    Produto,
+    ProdutoCodigo,
+    SessaoCarrinho,
+)
+from app.models.funcionario import PapelFuncionario
 from app.models.movimentacao_estoque import TipoMovimentacao
 from app.models.produto_codigo import TipoCodigo
 from app.services.stock_service import LIMITE_ESTOQUE_BAIXO_PADRAO
+
+# Credenciais do admin padrao criado pelo seed -- so para desenvolvimento/
+# demonstracao do TCC. Troque a senha (ou desative o usuario) antes de
+# qualquer uso real.
+ADMIN_EMAIL = "admin@loja.com"
+ADMIN_SENHA = "admin123"
 
 RNG_SEED = 42
 JANELA_DIAS = 90
@@ -140,12 +159,19 @@ def gerar_codigo_ean13(rng: random.Random, usados: set[str]) -> str:
 
 def limpar_tabelas(session) -> None:
     """Apaga na ordem correta (respeitando FKs) para permitir rodar o seed
-    mais de uma vez em desenvolvimento sem duplicar dados."""
+    mais de uma vez em desenvolvimento sem duplicar dados. Inclui os dados
+    de carrinho/pedido de teste (Fase 3) gerados por quem estiver mexendo
+    no app antes de rodar o seed de novo."""
+    session.query(PedidoItem).delete()
     session.query(MovimentacaoEstoque).delete()
+    session.query(CarrinhoItem).delete()
     session.query(Estoque).delete()
     session.query(ProdutoCodigo).delete()
+    session.query(Pedido).delete()
     session.query(Produto).delete()
+    session.query(SessaoCarrinho).delete()
     session.query(Categoria).delete()
+    session.query(Funcionario).delete()
     session.commit()
 
 
@@ -237,6 +263,16 @@ def rodar_seed() -> None:
     try:
         print("Limpando tabelas existentes...")
         limpar_tabelas(session)
+
+        print(f"Inserindo funcionario admin padrao ({ADMIN_EMAIL})...")
+        session.add(
+            Funcionario(
+                nome="Administrador",
+                email=ADMIN_EMAIL,
+                senha_hash=hash_senha(ADMIN_SENHA),
+                papel=PapelFuncionario.ADMIN,
+            )
+        )
 
         print("Inserindo categorias...")
         categorias_por_nome = {}
@@ -332,6 +368,7 @@ def rodar_seed() -> None:
         print(f"OK: {produtos_criados} produtos, {total_movimentacoes} movimentacoes de estoque")
         print(f"    {produtos_estoque_baixo} produtos com estoque <= {LIMITE_ESTOQUE_BAIXO} (pra testar alerta)")
         print(f"    janela de historico de vendas: ultimos {JANELA_DIAS} dias")
+        print(f"    login admin: {ADMIN_EMAIL} / {ADMIN_SENHA} (so para dev/demo -- troque depois)")
     except Exception:
         session.rollback()
         raise

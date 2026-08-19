@@ -1,13 +1,13 @@
-def test_criar_produto_sem_preco_e_sem_historico_falha(client):
-    resposta = client.post(
+def test_criar_produto_sem_preco_e_sem_historico_falha(auth_client):
+    resposta = auth_client.post(
         "/produtos",
         json={"nome": "Cola Nova", "codigo": "7890000000001"},
     )
     assert resposta.status_code == 422
 
 
-def test_criar_e_listar_produto(client):
-    resposta = client.post(
+def test_criar_e_listar_produto(auth_client):
+    resposta = auth_client.post(
         "/produtos",
         json={
             "nome": "Cola Pano",
@@ -25,27 +25,27 @@ def test_criar_e_listar_produto(client):
     assert corpo["estoque"]["quantidade"] == 20
     assert len(corpo["codigos"]) == 1
 
-    listagem = client.get("/produtos").json()
+    listagem = auth_client.get("/produtos").json()
     assert len(listagem) == 1
 
 
-def test_criar_produto_com_codigo_duplicado_retorna_409(client):
+def test_criar_produto_com_codigo_duplicado_retorna_409(auth_client):
     dados = {"nome": "Cola Pano", "codigo": "7896576331634", "preco_normal": "19.95"}
-    assert client.post("/produtos", json=dados).status_code == 201
+    assert auth_client.post("/produtos", json=dados).status_code == 201
 
-    resposta = client.post(
+    resposta = auth_client.post(
         "/produtos", json={"nome": "Outro Produto", "codigo": "7896576331634", "preco_normal": "10.00"}
     )
     assert resposta.status_code == 409
 
 
-def test_criar_produto_reaproveita_preco_de_cadastro_anterior(client):
-    client.post(
+def test_criar_produto_reaproveita_preco_de_cadastro_anterior(auth_client):
+    auth_client.post(
         "/produtos",
         json={"nome": "Cola Pano", "marca": "Gliart", "tamanho": "100g", "codigo": "7896576331634", "preco_normal": "19.95"},
     )
     # mesmo nome/marca/tamanho, codigo diferente (novo lote), sem informar preco
-    resposta = client.post(
+    resposta = auth_client.post(
         "/produtos",
         json={"nome": "Cola Pano", "marca": "Gliart", "tamanho": "100g", "codigo": "7896576331999"},
     )
@@ -53,26 +53,26 @@ def test_criar_produto_reaproveita_preco_de_cadastro_anterior(client):
     assert resposta.json()["preco_normal"] == "19.95"
 
 
-def test_lookup_por_codigo(client):
-    client.post("/produtos", json={"nome": "Cola Pano", "codigo": "7896576331634", "preco_normal": "19.95"})
+def test_lookup_por_codigo(auth_client):
+    auth_client.post("/produtos", json={"nome": "Cola Pano", "codigo": "7896576331634", "preco_normal": "19.95"})
 
-    encontrado = client.get("/produtos/codigo/7896576331634").json()
+    encontrado = auth_client.get("/produtos/codigo/7896576331634").json()
     assert encontrado["encontrado"] is True
     assert encontrado["produto"]["nome"] == "Cola Pano"
 
-    nao_encontrado = client.get("/produtos/codigo/0000000000000").json()
+    nao_encontrado = auth_client.get("/produtos/codigo/0000000000000").json()
     assert nao_encontrado["encontrado"] is False
     assert nao_encontrado["produto"] is None
 
 
-def test_desativar_produto_some_da_listagem_padrao(client):
-    criado = client.post(
+def test_desativar_produto_some_da_listagem_padrao(auth_client):
+    criado = auth_client.post(
         "/produtos", json={"nome": "Cola Pano", "codigo": "7896576331634", "preco_normal": "19.95"}
     ).json()
 
-    resposta = client.delete(f"/produtos/{criado['id']}")
+    resposta = auth_client.delete(f"/produtos/{criado['id']}")
     assert resposta.status_code == 200
     assert resposta.json()["ativo"] is False
 
-    assert client.get("/produtos").json() == []
-    assert len(client.get("/produtos", params={"somente_ativos": False}).json()) == 1
+    assert auth_client.get("/produtos").json() == []
+    assert len(auth_client.get("/produtos", params={"somente_ativos": False}).json()) == 1

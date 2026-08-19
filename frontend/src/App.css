@@ -34,3 +34,263 @@ main {
   max-width: 640px;
   margin: 0 auto;
 }
+
+.app-nav-spacer {
+  flex: 1;
+}
+
+.app-nav-usuario {
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: underline;
+  font: inherit;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 320px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.form input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.form button {
+  padding: 0.6rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.erro {
+  color: #c0392b;
+}
+
+.alerta {
+  color: #b8860b;
+  font-weight: 600;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.tabela-wrapper {
+  overflow-x: auto;
+}
+
+.tabela-estoque {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabela-estoque th,
+.tabela-estoque td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+}
+
+.tabela-estoque tr.linha-baixa {
+  background: #fff4e5;
+}
+
+/* Scanner (area do cliente) */
+.scanner-camera {
+  margin: 1rem 0;
+}
+
+.scanner-camera-reader {
+  width: 100%;
+  max-width: 400px;
+  min-height: 280px;
+  margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+/* html5-qrcode injeta o <video> direto nesse container -- forcamos ele a
+   preencher a largura disponivel em vez de usar o tamanho intrinseco que
+   a lib calcula (que pode ficar 0 se o container ainda nao tinha layout
+   no instante do start(), deixando so o overlay escuro visivel). */
+.scanner-camera-reader video {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.scanner-manual {
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.scanner-manual summary {
+  cursor: pointer;
+  color: #555;
+}
+
+.scanner-manual-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.scanner-manual-form input {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.scanner-manual-form button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.scanner-manual-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.scanner-resultado {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.scanner-resultado-ok {
+  background: #e7f6ec;
+}
+
+.scanner-resultado-erro {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.scanner-ir-carrinho {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #111;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Carrinho */
+.carrinho-lista {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.carrinho-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.carrinho-item-detalhe {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.carrinho-item-qtd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.carrinho-item-qtd button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.carrinho-item-subtotal {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.carrinho-item-remover {
+  font-size: 0.85rem;
+}
+
+.carrinho-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #ddd;
+}
+
+.carrinho-finalizar {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Checkout */
+.checkout-numero {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f4f4f4;
+  border-radius: 8px;
+}

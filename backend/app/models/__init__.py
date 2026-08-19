@@ -5,6 +5,22 @@ from app.models.categoria import Categoria
 from app.models.produto import Produto
 from app.models.produto_codigo import ProdutoCodigo
 from app.models.estoque import Estoque
+from app.models.funcionario import Funcionario
+from app.models.sessao_carrinho import SessaoCarrinho
+from app.models.carrinho_item import CarrinhoItem
+from app.models.pedido import Pedido
+from app.models.pedido_item import PedidoItem
 from app.models.movimentacao_estoque import MovimentacaoEstoque
 
-__all__ = ["Categoria", "Produto", "ProdutoCodigo", "Estoque", "MovimentacaoEstoque"]
+__all__ = [
+    "Categoria",
+    "Produto",
+    "ProdutoCodigo",
+    "Estoque",
+    "Funcionario",
+    "SessaoCarrinho",
+    "CarrinhoItem",
+    "Pedido",
+    "PedidoItem",
+    "MovimentacaoEstoque",
+]

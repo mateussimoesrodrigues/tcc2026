@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import products, stock
+from app.routers import auth, cart, checkout, products, public_catalog, stock
 
 settings = get_settings()
 
@@ -27,8 +27,12 @@ def health_check() -> dict:
     }
 
 
+app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(stock.router)
+app.include_router(public_catalog.router)
+app.include_router(cart.router)
+app.include_router(checkout.router)
 
 # Proximos routers entram conforme as fases forem implementadas:
-# from app.routers import auth, cart, checkout, promotions
+# from app.routers import promotions
