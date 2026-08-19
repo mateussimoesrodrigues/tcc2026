@@ -30,18 +30,21 @@ export default function ScannerCamera({ onScan, pausado = false }: ScannerCamera
     scannerRef.current = scanner;
     let cancelado = false;
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (codigoDecodificado) => {
-          if (!cancelado) onScanRef.current(codigoDecodificado);
-        },
-        () => {
-          // erro "nao achou codigo neste frame" -- disparado a cada frame
-          // sem leitura, nao e um erro real, so ignoramos.
-        }
-      )
+    // Guarda a Promise "crua" do start() (sem o .then/.catch de UI abaixo)
+    // para poder esperar ela assentar antes de parar a camera no cleanup.
+    const iniciarPromise = scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (codigoDecodificado) => {
+        if (!cancelado) onScanRef.current(codigoDecodificado);
+      },
+      () => {
+        // erro "nao achou codigo neste frame" -- disparado a cada frame
+        // sem leitura, nao e um erro real, so ignoramos.
+      }
+    );
+
+    iniciarPromise
       .then(() => {
         if (!cancelado) setIniciando(false);
       })
@@ -56,21 +59,30 @@ export default function ScannerCamera({ onScan, pausado = false }: ScannerCamera
 
     return () => {
       cancelado = true;
-      // stop()/pause() da lib podem lancar sincronamente (nao so rejeitar
-      // a Promise) quando o scanner nao esta num estado "parável" -- ex.:
-      // desmontou antes do start() terminar, ou HMR remontou o componente
-      // no meio da inicializacao. Por isso o try/catch por fora, alem do
-      // .catch() na Promise.
-      try {
-        scanner
-          .stop()
-          .then(() => scanner.clear())
-          .catch(() => {
-            /* camera pode ja ter sido parada (ex.: erro na inicializacao) */
-          });
-      } catch {
-        /* scanner nunca chegou a rodar -- nada para parar */
-      }
+      // O React StrictMode (dev) monta/desmonta cada componente 2x de
+      // proposito pra pegar exatamente esse tipo de bug: chamar stop()
+      // enquanto o start() ainda esta em andamento (estado STARTING) lanca
+      // erro sincrono e NAO para a camera -- o stream anterior fica orfao
+      // rodando, e o proximo mount injeta um segundo <video> no mesmo
+      // container (aparencia de camera "duplicada", uma embaixo da
+      // outra). Por isso esperamos o start() assentar (sucesso ou falha)
+      // antes de tentar parar.
+      iniciarPromise
+        .catch(() => {
+          /* start() falhou -- nada rodando pra parar */
+        })
+        .then(() => {
+          try {
+            scanner
+              .stop()
+              .then(() => scanner.clear())
+              .catch(() => {
+                /* ja parado */
+              });
+          } catch {
+            /* nunca chegou a rodar de fato */
+          }
+        });
     };
   }, []);
 
