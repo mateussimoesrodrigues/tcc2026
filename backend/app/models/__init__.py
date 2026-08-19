@@ -11,6 +11,8 @@ from app.models.carrinho_item import CarrinhoItem
 from app.models.pedido import Pedido
 from app.models.pedido_item import PedidoItem
 from app.models.movimentacao_estoque import MovimentacaoEstoque
+from app.models.promocao_sugestao import PromocaoSugestao
+from app.models.historico_preco import HistoricoPreco
 
 __all__ = [
     "Categoria",
@@ -23,4 +25,6 @@ __all__ = [
     "Pedido",
     "PedidoItem",
     "MovimentacaoEstoque",
+    "PromocaoSugestao",
+    "HistoricoPreco",
 ]

@@ -115,7 +115,29 @@ frontend/src/
   (`html5-qrcode`, cobre Android e iOS), páginas Scanner/Carrinho/Checkout
   funcionais, PWA instalável com ícones (placeholder). Testado
   end-to-end contra o Postgres real (Neon).
-- **Próxima**: Fase 4 — motor de sugestão de promoções por IA (regras +
-  LLM gratuito), telas Promoções e Histórico de Preços.
+- **Fase 4 (motor de promoções por IA)**: implementada — modelos
+  `promocao_sugestao`, `historico_preco` (migration aplicada no Neon);
+  `ai/rules.py` calcula sinais determinísticos por produto (dias sem
+  venda, giro, dias de estoque restante, margem, sazonalidade simples) a
+  partir do histórico real de `movimentacao_estoque`; `ai/llm_provider.py`
+  chama Groq (Llama 3.3 70B) via REST direto, com fallback automático pro
+  Gemini 2.5 Flash, valida a resposta (JSON estrito, desconto 0-70%) e
+  nunca deixa uma falha de IA travar os demais produtos;
+  `services/promotion_service.py` orquestra tudo e `services/price_service.py`
+  é o único lugar que de fato muda preço (transacional, sempre grava
+  histórico); `POST /promocoes/gerar-agora` (sob demanda, essencial pra
+  demo), `GET /promocoes`, aprovar/rejeitar, `GET /historico-precos` —
+  todos exigem funcionário logado. Job diário (`jobs/scheduler.py`,
+  APScheduler) fica desligado por padrão (`ENABLE_SCHEDULER=false`) pra
+  não bater na API real durante testes; liga só em produção. Testado
+  end-to-end contra o Neon com o LLM mockado (60 testes automatizados) e
+  também contra a API real do backend rodando — sem `GROQ_API_KEY`/
+  `GEMINI_API_KEY` ainda configuradas, então a geração funciona e reporta
+  a falha de IA por produto sem quebrar nada; falta só colar as chaves
+  gratuitas no `.env` (ver `.env.example`) pra ver as sugestões de
+  verdade sendo geradas. Frontend: telas Promoções (gerar sob demanda,
+  aprovar/rejeitar com observação) e Histórico de Preços funcionais.
+- **Próxima**: Fase 5 — deploy em nuvem + hardening (CORS restrito,
+  variáveis de produção, CI/CD).
 
 Roadmap completo das próximas fases no plano de implementação.

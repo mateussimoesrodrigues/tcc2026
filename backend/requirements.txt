@@ -13,4 +13,7 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.20
 apscheduler==3.10.4
 httpx==0.28.1
+truststore==0.10.4  # usa o certificate store do SO (Windows/macOS) em vez do bundle do certifi --
+                    # necessario em maquinas com AV/proxy corporativo que faz inspecao SSL e
+                    # instala uma CA root propria so no store do sistema (ver app/main.py)
 pytest==8.3.4

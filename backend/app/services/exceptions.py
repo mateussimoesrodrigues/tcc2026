@@ -48,3 +48,22 @@ class EstoqueInsuficienteError(Exception):
     def __init__(self, itens: list[dict]):
         self.itens = itens
         super().__init__("Estoque insuficiente para um ou mais itens do carrinho")
+
+
+class LLMIndisponivelError(Exception):
+    """Nem o provedor primario (Groq) nem o fallback (Gemini) responderam
+    -- key ausente, timeout, erro HTTP. O produto fica sem sugestao nessa
+    rodada; nao interrompe os demais candidatos."""
+
+
+class RespostaLLMInvalidaError(Exception):
+    """O LLM respondeu, mas fora do formato/faixa esperados (JSON malformado,
+    campo faltando, desconto fora de 0-70%, preco <= 0)."""
+
+
+class SugestaoNaoEncontradaError(Exception):
+    pass
+
+
+class SugestaoJaAvaliadaError(Exception):
+    """Sugestao ja aprovada/rejeitada/expirada -- nao pode ser avaliada de novo."""

@@ -33,9 +33,11 @@ from app.models import (
     Categoria,
     Estoque,
     Funcionario,
+    HistoricoPreco,
     MovimentacaoEstoque,
     Pedido,
     PedidoItem,
+    PromocaoSugestao,
     Produto,
     ProdutoCodigo,
     SessaoCarrinho,
@@ -160,13 +162,15 @@ def gerar_codigo_ean13(rng: random.Random, usados: set[str]) -> str:
 def limpar_tabelas(session) -> None:
     """Apaga na ordem correta (respeitando FKs) para permitir rodar o seed
     mais de uma vez em desenvolvimento sem duplicar dados. Inclui os dados
-    de carrinho/pedido de teste (Fase 3) gerados por quem estiver mexendo
-    no app antes de rodar o seed de novo."""
+    de carrinho/pedido (Fase 3) e de promocoes/historico de preco (Fase 4)
+    gerados por quem estiver mexendo no app antes de rodar o seed de novo."""
     session.query(PedidoItem).delete()
+    session.query(HistoricoPreco).delete()
     session.query(MovimentacaoEstoque).delete()
     session.query(CarrinhoItem).delete()
     session.query(Estoque).delete()
     session.query(ProdutoCodigo).delete()
+    session.query(PromocaoSugestao).delete()
     session.query(Pedido).delete()
     session.query(Produto).delete()
     session.query(SessaoCarrinho).delete()

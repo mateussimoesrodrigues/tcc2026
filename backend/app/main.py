@@ -1,12 +1,27 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import auth, cart, checkout, products, public_catalog, stock
+from app.routers import auth, cart, checkout, price_history, products, promotions, public_catalog, stock
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.enable_scheduler:
+        from app.jobs.scheduler import iniciar_scheduler, parar_scheduler
+
+        iniciar_scheduler()
+        yield
+        parar_scheduler()
+    else:
+        yield
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +48,5 @@ app.include_router(stock.router)
 app.include_router(public_catalog.router)
 app.include_router(cart.router)
 app.include_router(checkout.router)
-
-# Proximos routers entram conforme as fases forem implementadas:
-# from app.routers import promotions
+app.include_router(promotions.router)
+app.include_router(price_history.router)
