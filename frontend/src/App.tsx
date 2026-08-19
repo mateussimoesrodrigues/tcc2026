@@ -62,9 +62,14 @@ function FuncionarioLayout() {
         <FuncionarioNav />
         <main>
           <Routes>
-            <Route path="/funcionario/login" element={<Login />} />
+            {/* Caminhos relativos aqui (nao "/funcionario/..."): este
+                <Routes> ja esta aninhado dentro da rota pai "/funcionario/*"
+                (ver <App> abaixo) -- absolutos nao casam de forma
+                confiavel nesse padrao e o <Routes> so renderiza em
+                branco, sem erro nenhum no console. */}
+            <Route path="login" element={<Login />} />
             <Route
-              path="/funcionario"
+              index
               element={
                 <ProtectedRoute>
                   <DashboardEstoque />
@@ -72,7 +77,7 @@ function FuncionarioLayout() {
               }
             />
             <Route
-              path="/funcionario/produtos"
+              path="produtos"
               element={
                 <ProtectedRoute>
                   <Produtos />
@@ -80,7 +85,7 @@ function FuncionarioLayout() {
               }
             />
             <Route
-              path="/funcionario/promocoes"
+              path="promocoes"
               element={
                 <ProtectedRoute>
                   <Promocoes />
@@ -88,7 +93,7 @@ function FuncionarioLayout() {
               }
             />
             <Route
-              path="/funcionario/historico-precos"
+              path="historico-precos"
               element={
                 <ProtectedRoute>
                   <HistoricoPrecos />
