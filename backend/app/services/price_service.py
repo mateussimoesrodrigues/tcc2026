@@ -33,13 +33,19 @@ def aplicar_promocao(
     sugestao_id: int | None = None,
     alterado_por: int | None = None,
     dias_validade: int = DIAS_VALIDADE_PADRAO,
+    horas_validade: float | None = None,
 ) -> Produto:
+    """`horas_validade`, quando informado, manda em cima de `dias_validade`
+    -- existe pra permitir promocoes curtas (ex.: 2h, pra demo/teste),
+    sem perder o default em dias usado no dia a dia."""
     produto = _obter_produto(db, produto_id)
     preco_anterior = produto.preco_vigente
 
+    validade = timedelta(hours=horas_validade) if horas_validade is not None else timedelta(days=dias_validade)
+
     produto.preco_promocional = preco_novo
     produto.promocao_ativa = True
-    produto.promocao_expira_em = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=dias_validade)
+    produto.promocao_expira_em = datetime.now(UTC).replace(tzinfo=None) + validade
 
     db.add(
         HistoricoPreco(

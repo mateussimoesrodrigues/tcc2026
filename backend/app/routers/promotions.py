@@ -32,6 +32,15 @@ def gerar_agora(db: Session = Depends(get_db)):
     )
 
 
+@router.post("/expirar-agora")
+def expirar_agora(db: Session = Depends(get_db)):
+    """Reverte na hora as promocoes cujo `promocao_expira_em` ja passou,
+    sem esperar o job periodico do scheduler -- util pra testar/demonstrar
+    a expiracao automatica (ver `enable_scheduler` em core/config.py)."""
+    total = promotion_service.expirar_promocoes_vencidas(db)
+    return {"promocoes_revertidas": total}
+
+
 @router.get("", response_model=list[SugestaoRead])
 def listar(status_filtro: StatusSugestao | None = None, db: Session = Depends(get_db)):
     sugestoes = promotion_service.listar_sugestoes(db, status=status_filtro)
@@ -47,7 +56,12 @@ def aprovar(
 ):
     try:
         sugestao = promotion_service.aprovar(
-            db, sugestao_id, funcionario.id, observacao=dados.observacao, dias_validade=dados.dias_validade
+            db,
+            sugestao_id,
+            funcionario.id,
+            observacao=dados.observacao,
+            dias_validade=dados.dias_validade,
+            horas_validade=dados.horas_validade,
         )
     except SugestaoNaoEncontradaError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sugestao nao encontrada")

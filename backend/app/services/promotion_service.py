@@ -95,6 +95,7 @@ def aprovar(
     *,
     observacao: str | None = None,
     dias_validade: int | None = None,
+    horas_validade: float | None = None,
 ) -> PromocaoSugestao:
     sugestao = _obter_sugestao_pendente(db, sugestao_id)
     dias_validade_final = dias_validade if dias_validade is not None else price_service.DIAS_VALIDADE_PADRAO
@@ -107,6 +108,7 @@ def aprovar(
         sugestao_id=sugestao.id,
         alterado_por=funcionario_id,
         dias_validade=dias_validade_final,
+        horas_validade=horas_validade,
     )
 
     sugestao.status = StatusSugestao.APROVADA

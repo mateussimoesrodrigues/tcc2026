@@ -42,7 +42,7 @@ function FuncionarioNav() {
 
   return (
     <nav className="app-nav">
-      <NavLink to="/funcionario">Estoque</NavLink>
+      <NavLink to="/funcionario" end>Estoque</NavLink>
       <NavLink to="/funcionario/produtos">Produtos</NavLink>
       <NavLink to="/funcionario/promocoes">Promoções</NavLink>
       <NavLink to="/funcionario/historico-precos">Histórico</NavLink>

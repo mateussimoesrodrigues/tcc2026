@@ -311,7 +311,12 @@ def rodar_seed() -> None:
                 custo=custo,
                 preco_normal=Decimal(preco_normal),
                 preco_promocional=Decimal(preco_promocional) if preco_promocional else None,
-                promocao_ativa=preco_promocional is not None,
+                # Nunca nasce ativa: `preco_promocional` aqui e so o "Valor
+                # c/ desconto" historico da planilha, mantido como
+                # referencia. A promocao so passa a valer (preco_vigente
+                # usa preco_promocional) quando um funcionario aprova pelo
+                # fluxo de sugestoes (ver promotion_service.aprovar).
+                promocao_ativa=False,
             )
             session.add(produto)
             session.flush()  # garante produto.id

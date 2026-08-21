@@ -55,6 +55,9 @@ class SugestaoRead(BaseModel):
 class AprovarSugestaoRequest(BaseModel):
     observacao: str | None = None
     dias_validade: int | None = None
+    # Alternativa mais granular a dias_validade -- quando informada, tem
+    # prioridade. Serve pra promocoes curtas (ex.: 2h) em demo/teste.
+    horas_validade: float | None = None
 
 
 class RejeitarSugestaoRequest(BaseModel):

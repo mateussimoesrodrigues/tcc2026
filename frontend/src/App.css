@@ -1001,6 +1001,19 @@ main {
   margin-bottom: 0.75rem;
 }
 
+.promo-validade {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  margin-bottom: 0.75rem;
+}
+
+.promo-validade input {
+  max-width: 8rem;
+}
+
 .promo-acoes {
   display: flex;
   gap: 0.6rem;

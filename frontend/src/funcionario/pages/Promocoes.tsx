@@ -65,6 +65,7 @@ export default function Promocoes() {
   const [gerando, setGerando] = useState(false);
   const [resumoGeracao, setResumoGeracao] = useState<GerarResposta | null>(null);
   const [observacoes, setObservacoes] = useState<Record<number, string>>({});
+  const [horasValidade, setHorasValidade] = useState<Record<number, string>>({});
   const [avaliando, setAvaliando] = useState<number | null>(null);
 
   function carregar() {
@@ -96,10 +97,14 @@ export default function Promocoes() {
   async function avaliar(id: number, acao: "aprovar" | "rejeitar") {
     setAvaliando(id);
     try {
+      const horas = horasValidade[id]?.trim();
       await apiFetch(`/promocoes/${id}/${acao}`, {
         method: "POST",
         auth: true,
-        body: JSON.stringify({ observacao: observacoes[id] || undefined }),
+        body: JSON.stringify({
+          observacao: observacoes[id] || undefined,
+          ...(acao === "aprovar" && horas ? { horas_validade: Number(horas) } : {}),
+        }),
       });
       setSugestoes((atual) => atual.filter((s) => s.id !== id));
     } catch {
@@ -181,6 +186,18 @@ export default function Promocoes() {
               onChange={(e) => setObservacoes((atual) => ({ ...atual, [s.id]: e.target.value }))}
               className="promo-observacao"
             />
+
+            <label className="promo-validade">
+              Validade (horas, opcional — padrão 14 dias)
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="ex.: 2"
+                value={horasValidade[s.id] || ""}
+                onChange={(e) => setHorasValidade((atual) => ({ ...atual, [s.id]: e.target.value }))}
+              />
+            </label>
 
             <div className="promo-acoes">
               <button type="button" onClick={() => avaliar(s.id, "aprovar")} disabled={avaliando === s.id}>
