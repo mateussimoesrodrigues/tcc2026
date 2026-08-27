@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     # (producao).
     enable_scheduler: bool = False
 
+    # Intervalo (em segundos) que os displays fisicos de prateleira devem
+    # esperar entre uma sincronizacao e outra (ver routers/displays.py e
+    # docs/displays-fisicos.md). Devolvido a cada resposta de sync, em vez
+    # de fixo no firmware, pra dar pra apertar (demo) ou alongar (producao,
+    # poupar bateria) sem reflashear os dispositivos.
+    display_sync_intervalo_segundos: int = 300
+
     @property
     def sqlalchemy_database_url(self) -> str:
         return self.database_url or _DEV_SQLITE_URL

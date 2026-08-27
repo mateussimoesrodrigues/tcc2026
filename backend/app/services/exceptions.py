@@ -67,3 +67,7 @@ class SugestaoNaoEncontradaError(Exception):
 
 class SugestaoJaAvaliadaError(Exception):
     """Sugestao ja aprovada/rejeitada/expirada -- nao pode ser avaliada de novo."""
+
+
+class DisplayNaoEncontradoError(Exception):
+    pass

@@ -13,6 +13,7 @@ from app.models.pedido_item import PedidoItem
 from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.promocao_sugestao import PromocaoSugestao
 from app.models.historico_preco import HistoricoPreco
+from app.models.display import Display
 
 __all__ = [
     "Categoria",
@@ -27,4 +28,5 @@ __all__ = [
     "MovimentacaoEstoque",
     "PromocaoSugestao",
     "HistoricoPreco",
+    "Display",
 ]

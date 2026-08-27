@@ -302,6 +302,18 @@ main {
   font-size: 0.94rem;
 }
 
+.display-token-box {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 1rem;
+  word-break: break-all;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  margin: 0.75rem 0 1.25rem;
+  user-select: all;
+}
+
 /* --- Tabelas ------------------------------------------------------------- */
 
 .tabela-wrapper {

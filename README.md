@@ -4,8 +4,10 @@ TCC: digitalização e automação da precificação de uma loja de varejo físi
 (armarinho/papelaria/artesanato). Duas áreas — cliente (scanner de QR/código
 de barras → carrinho → checkout sem pagamento) e funcionário (login, gestão
 de estoque com alerta de estoque baixo, sugestões de promoção geradas por
-IA aguardando aprovação) — mais, num momento futuro, displays físicos de
-preço.
+IA aguardando aprovação) — mais displays físicos de prateleira que
+atualizam o preço exibido sozinhos via wifi quando uma promoção é aprovada
+(backend/API/painel já prontos; hardware em andamento — ver
+[`docs/displays-fisicos.md`](docs/displays-fisicos.md)).
 
 Arquitetura completa, modelagem de dados e roadmap faseado estão descritos
 no plano de implementação do projeto.
@@ -122,6 +124,9 @@ frontend/src/
 .github/workflows/ci.yml   # pytest + build do frontend em todo push/PR
 backend/Procfile, railway.toml, .python-version   # deploy no Railway
 frontend/vercel.json                              # deploy no Vercel (rewrite de rotas)
+
+docs/displays-fisicos.md   # arquitetura/handoff dos displays físicos de prateleira
+firmware/                  # firmware de referência (ESP32) dos displays -- ver firmware/README.md
 ```
 
 ## Status
@@ -178,17 +183,26 @@ frontend/vercel.json                              # deploy no Vercel (rewrite de
   navegador). Frontend: telas Promoções (gerar sob demanda com spinner de
   progresso, aprovar/rejeitar com observação) e Histórico de Preços
   funcionais.
-- **Fase 5 (deploy + hardening)**: preparada — `.github/workflows/ci.yml`
-  (pytest + build do frontend em todo push/PR, sem segredos); config de
-  deploy pronta pro Railway (backend: `Procfile`, `railway.toml`,
-  `.python-version`) e pro Vercel (frontend: `vercel.json`, rewrite de
-  rotas do React Router); checagem de segurança no boot
+- **Fase 5 (deploy + hardening)**: concluída — `.github/workflows/ci.yml`
+  (pytest + build do frontend em todo push/PR, sem segredos); backend no
+  Render e frontend no Vercel já conectados e publicados (ver seção
+  "Deploy" acima); checagem de segurança no boot
   (`validar_configuracao_producao`) que recusa subir com
   `ENVIRONMENT=production` e `JWT_SECRET_KEY` ainda no valor padrão do
-  repositório. Passo a passo completo na seção "Deploy" acima. **Falta**:
-  criar as contas/projetos no Railway e no Vercel e conectar o repositório
-  — isso só o dono do projeto pode fazer.
+  repositório. Config alternativa pro Railway (`Procfile`, `railway.toml`,
+  `.python-version`) segue no repo como opção B.
+- **Fase 7 (displays físicos)**: backend/API/painel prontos e testados —
+  modelo `display` (migration aplicada no Neon), `POST /displays/sincronizar`
+  (dispositivo se autentica sozinho via token próprio, sem login de
+  funcionário), painel `/funcionario/displays` (criar, vincular a produto,
+  ver bateria/última sincronização, regenerar token) e firmware de
+  referência (ESP32, `firmware/esp32_display_preco/`) cobrindo wifi +
+  sincronização + deep sleep — falta só a função de desenho específica do
+  display escolhido. **Hardware ainda não comprado** — arquitetura
+  completa, contrato de API e roadmap de compra/montagem em
+  [`docs/displays-fisicos.md`](docs/displays-fisicos.md).
 - **Próxima**: Fase 6 — polimento para a banca (testes em iOS/Android
-  reais, roteiro de demo, redação da justificativa técnica da IA).
+  reais, roteiro de demo, redação da justificativa técnica da IA) — em
+  paralelo com a Fase 7 (comprar/montar o primeiro protótipo de display).
 
 Roadmap completo das próximas fases no plano de implementação.

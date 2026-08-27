@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings, validar_configuracao_producao
-from app.routers import auth, cart, checkout, price_history, products, promotions, public_catalog, stock
+from app.routers import auth, cart, checkout, displays, price_history, products, promotions, public_catalog, stock
 
 settings = get_settings()
 # Falha rapido no boot se ENVIRONMENT=production estiver com config
@@ -53,3 +53,4 @@ app.include_router(cart.router)
 app.include_router(checkout.router)
 app.include_router(promotions.router)
 app.include_router(price_history.router)
+app.include_router(displays.router)

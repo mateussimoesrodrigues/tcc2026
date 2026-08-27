@@ -13,6 +13,10 @@ frontend/dist/
 frontend/.env
 frontend/*.local
 
+# --- Firmware (displays fisicos) ---
+# Wifi/token de cada dispositivo -- nunca commitar (ver firmware/README.md).
+firmware/**/config.h
+
 # --- Editor / OS ---
 .vscode/
 .idea/

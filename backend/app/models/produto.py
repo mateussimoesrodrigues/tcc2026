@@ -50,6 +50,7 @@ class Produto(TimestampMixin, Base):
     movimentacoes: Mapped[list["MovimentacaoEstoque"]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
     )
+    displays: Mapped[list["Display"]] = relationship(back_populates="produto")
 
     @property
     def preco_vigente(self) -> Decimal:

@@ -3,7 +3,7 @@ funcionario. Usado pelas rotas protegidas (gestao de produtos/estoque e,
 mais pra frente, aprovacao de promocoes)."""
 from datetime import datetime, timedelta, UTC
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.models.display import Display
 from app.models.funcionario import Funcionario
 
 settings = get_settings()
@@ -65,3 +66,18 @@ def exigir_admin(funcionario: Funcionario = Depends(get_current_funcionario)) ->
     if funcionario.papel.value != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Requer papel de administrador")
     return funcionario
+
+
+def get_display_by_token(
+    x_display_token: str = Header(..., alias="X-Display-Token"),
+    db: Session = Depends(get_db),
+) -> Display:
+    """Autenticacao dos displays fisicos: nao usam login de funcionario
+    (JWT), so um token opaco por dispositivo gravado no firmware na hora
+    de configurar (ver `services/display_service.criar_display`). Mandado
+    no header `X-Display-Token` em toda chamada a
+    `POST /displays/sincronizar`."""
+    display = db.execute(select(Display).where(Display.token == x_display_token)).scalar_one_or_none()
+    if display is None or not display.ativo:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token de display invalido ou desativado")
+    return display

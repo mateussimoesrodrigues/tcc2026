@@ -30,6 +30,8 @@ services:
         value: HS256
       - key: JWT_EXPIRE_MINUTES
         value: "480"
+      - key: DISPLAY_SYNC_INTERVALO_SEGUNDOS
+        value: "300"
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET_KEY

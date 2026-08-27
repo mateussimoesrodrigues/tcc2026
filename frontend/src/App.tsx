@@ -7,6 +7,7 @@ import Login from "./funcionario/pages/Login";
 import DashboardEstoque from "./funcionario/pages/DashboardEstoque";
 import Promocoes from "./funcionario/pages/Promocoes";
 import Produtos from "./funcionario/pages/Produtos";
+import Displays from "./funcionario/pages/Displays";
 import HistoricoPrecos from "./funcionario/pages/HistoricoPrecos";
 import ProtectedRoute from "./funcionario/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -46,6 +47,7 @@ function FuncionarioNav() {
       <NavLink to="/funcionario/produtos">Produtos</NavLink>
       <NavLink to="/funcionario/promocoes">Promoções</NavLink>
       <NavLink to="/funcionario/historico-precos">Histórico</NavLink>
+      <NavLink to="/funcionario/displays">Displays</NavLink>
       <span className="app-nav-spacer" />
       <span className="app-nav-usuario">{funcionario.nome}</span>
       <button type="button" className="link-button" onClick={logout}>
@@ -97,6 +99,14 @@ function FuncionarioLayout() {
               element={
                 <ProtectedRoute>
                   <HistoricoPrecos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="displays"
+              element={
+                <ProtectedRoute>
+                  <Displays />
                 </ProtectedRoute>
               }
             />
