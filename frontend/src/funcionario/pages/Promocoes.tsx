@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../api/client";
+import { ApiError, apiFetch } from "../../api/client";
 
 interface SinaisDetectados {
   dias_sem_venda: number | null;
@@ -33,6 +33,45 @@ interface Falha {
   produto_id: number;
   nome: string;
   motivo: string;
+  // "llm" = provedor não respondeu / resposta fora do formato.
+  // "guard_rail" = respondeu, mas o preço feria o piso de custo.
+  categoria?: "llm" | "guard_rail";
+}
+
+// Corpo dos 422/409 de preço promocional (schemas/promocao.ErroPrecoRead).
+interface ErroPreco {
+  codigo: string;
+  mensagem: string;
+  detalhes: Record<string, unknown>;
+}
+
+function extrairErroPreco(e: unknown): ErroPreco | null {
+  if (!(e instanceof ApiError) || typeof e.body !== "object" || e.body === null) return null;
+  const detail = (e.body as { detail?: unknown }).detail;
+  if (typeof detail !== "object" || detail === null || !("codigo" in detail)) return null;
+  return detail as ErroPreco;
+}
+
+// Traduz o código estável do backend numa instrução acionável. O código
+// existe justamente para a UI não depender de casar a string traduzida.
+function mensagemErroPreco({ codigo, mensagem, detalhes }: ErroPreco): string {
+  switch (codigo) {
+    case "abaixo_do_piso":
+      if (detalhes.piso == null) {
+        return "Produto sem custo cadastrado — cadastre o custo em Produtos antes de promover.";
+      }
+      return (
+        `Preço abaixo do piso de R$ ${detalhes.piso} ` +
+        `(custo R$ ${detalhes.custo} + margem mínima de ${detalhes.margem_minima_percentual}%). ` +
+        `Ajuste o custo em Produtos ou rejeite a sugestão.`
+      );
+    case "promocao_ja_ativa":
+      return detalhes.expira_em
+        ? `Este produto já está em promoção até ${new Date(String(detalhes.expira_em)).toLocaleString("pt-BR")}.`
+        : "Este produto já está em promoção.";
+    default:
+      return mensagem;
+  }
 }
 
 interface GerarResposta {
@@ -67,6 +106,9 @@ export default function Promocoes() {
   const [observacoes, setObservacoes] = useState<Record<number, string>>({});
   const [horasValidade, setHorasValidade] = useState<Record<number, string>>({});
   const [avaliando, setAvaliando] = useState<number | null>(null);
+  // Erro por sugestão (e não global): o guard-rail de preço recusa uma
+  // sugestão específica, e a mensagem precisa aparecer no card dela.
+  const [erroPorSugestao, setErroPorSugestao] = useState<Record<number, string>>({});
 
   function carregar() {
     setCarregando(true);
@@ -96,6 +138,10 @@ export default function Promocoes() {
 
   async function avaliar(id: number, acao: "aprovar" | "rejeitar") {
     setAvaliando(id);
+    setErroPorSugestao((atual) => {
+      const { [id]: _descartado, ...resto } = atual;
+      return resto;
+    });
     try {
       const horas = horasValidade[id]?.trim();
       await apiFetch(`/promocoes/${id}/${acao}`, {
@@ -106,9 +152,18 @@ export default function Promocoes() {
           ...(acao === "aprovar" && horas ? { horas_validade: Number(horas) } : {}),
         }),
       });
+      // Só some da lista quando deu certo de verdade -- antes o card era
+      // removido otimisticamente e o funcionário perdia a sugestão de vista
+      // mesmo quando a aprovação falhava.
       setSugestoes((atual) => atual.filter((s) => s.id !== id));
-    } catch {
-      setErro(`Não foi possível ${acao === "aprovar" ? "aprovar" : "rejeitar"} a sugestão.`);
+    } catch (e) {
+      const erroPreco = extrairErroPreco(e);
+      setErroPorSugestao((atual) => ({
+        ...atual,
+        [id]: erroPreco
+          ? mensagemErroPreco(erroPreco)
+          : `Não foi possível ${acao === "aprovar" ? "aprovar" : "rejeitar"} a sugestão.`,
+      }));
     } finally {
       setAvaliando(null);
     }
@@ -137,17 +192,15 @@ export default function Promocoes() {
         <p className="promo-resumo-geracao">
           {resumoGeracao.candidatos_avaliados} candidato(s) avaliado(s), {resumoGeracao.sugestoes_criadas.length}{" "}
           sugestão(ões) nova(s)
-          {resumoGeracao.falhas.length > 0 && (
-            <> — {resumoGeracao.falhas.length} falharam (IA indisponível ou resposta inválida)</>
-          )}
-          .
+          {resumoGeracao.falhas.length > 0 && <> — {resumoGeracao.falhas.length} não gerou sugestão</>}.
         </p>
       )}
       {resumoGeracao && resumoGeracao.falhas.length > 0 && (
         <ul className="promo-falhas">
           {resumoGeracao.falhas.map((f) => (
             <li key={f.produto_id}>
-              {f.nome}: {f.motivo}
+              <strong>{f.nome}</strong>
+              {f.categoria === "guard_rail" ? " (barrado pelo piso de custo)" : " (IA indisponível)"}: {f.motivo}
             </li>
           ))}
         </ul>
@@ -212,6 +265,8 @@ export default function Promocoes() {
                 Rejeitar
               </button>
             </div>
+
+            {erroPorSugestao[s.id] && <p className="promo-erro">{erroPorSugestao[s.id]}</p>}
           </li>
         ))}
       </ul>

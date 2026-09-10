@@ -65,9 +65,15 @@ class DisplayEstadoResponse(BaseModel):
     preco_promocional: Decimal | None = None
     promocao_ativa: bool = False
     preco_vigente: Decimal | None = None
+    # Calculado no servidor (nao no firmware) pra o selo "-XX%" bater
+    # exatamente com o que o painel mostra. Nulo fora de promocao.
+    percentual_desconto: Decimal | None = None
     # Sobe sempre que o preco (ou qualquer outro campo do produto) muda --
     # o firmware pode guardar o ultimo valor visto e so redesenhar a tela
     # (custoso em e-paper) quando ele for diferente.
     produto_atualizado_em: datetime | None = None
+    # Quando este payload foi montado. Serve pro firmware descartar uma
+    # mensagem MQTT retida que chegue depois de um sync HTTP mais novo.
+    gerado_em: datetime | None = None
 
     proximo_sync_em_segundos: int

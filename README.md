@@ -2,12 +2,20 @@
 
 TCC: digitalização e automação da precificação de uma loja de varejo físico
 (armarinho/papelaria/artesanato). Duas áreas — cliente (scanner de QR/código
-de barras → carrinho → checkout sem pagamento) e funcionário (login, gestão
-de estoque com alerta de estoque baixo, sugestões de promoção geradas por
-IA aguardando aprovação) — mais displays físicos de prateleira que
-atualizam o preço exibido sozinhos via wifi quando uma promoção é aprovada
-(backend/API/painel já prontos; hardware em andamento — ver
+de barras → carrinho → checkout, com conferência no caixa físico) e
+funcionário (caixa, login, gestão de estoque com alerta de estoque baixo,
+sugestões de promoção geradas por IA aguardando aprovação, indicadores de
+eficácia) — mais displays físicos de prateleira que atualizam o preço
+exibido sozinhos via wifi quando uma promoção é aprovada (backend/API/painel
+já prontos; hardware em andamento — ver
 [`docs/displays-fisicos.md`](docs/displays-fisicos.md)).
+
+O checkout **não** processa pagamento, e isso é uma decisão de projeto: a
+loja é física e tem caixa, então o sistema gera um número curto de
+conferência e é companion do caixa, não um self-checkout. Integrar um
+gateway exigiria quebrar o checkout em reserva → confirmação, infra de
+webhook e expiração com devolução de estoque — trabalho de integração sem
+contribuição para a pergunta do trabalho, que é sobre *precificação*.
 
 Arquitetura completa, modelagem de dados e roadmap faseado estão descritos
 no plano de implementação do projeto.
@@ -22,7 +30,10 @@ no plano de implementação do projeto.
   via `html5-qrcode`.
 - **IA de promoções**: regras determinísticas (estoque parado, giro baixo,
   margem) + LLM gratuito (Groq/Gemini) como camada de raciocínio — ver
-  justificativa detalhada no plano.
+  justificativa detalhada no plano. Toda sugestão passa por **guard-rails
+  de preço** (`services/price_service.py`): nenhuma promoção pode deixar o
+  preço abaixo de `custo × (1 + margem mínima)`, nem passar do teto de
+  desconto — nem sugerida pela IA, nem aprovada por funcionário.
 
 ## Rodando localmente
 
@@ -44,13 +55,52 @@ para conferir se está de pé e qual banco está em uso).
 #### Popular o banco (seed)
 
 ```bash
-python -m app.seed
+python -m app.seed                      # padrão: 90 dias, semente 42
+python -m app.seed --seed 7 --dias 60   # outra amostra (para checar robustez)
 ```
 
 Popula (ou repopula do zero — o script limpa as tabelas antes) o catálogo
-com os produtos reais da loja + itens adicionais das mesmas marcas, além
-de um histórico de vendas simulado dos últimos 90 dias, usado como base
-pelas regras da IA de promoções na Fase 4.
+com os produtos reais da loja + itens adicionais das mesmas marcas, e
+**simula 90 dias de operação**: demanda diária por produto (Poisson, com
+fator de fim de semana e de quinzena), promoções históricas com resposta
+de demanda ao desconto, e cada venda virando `pedido` + `pedido_item`
+(com o preço praticado) + `movimentacao_estoque`.
+
+> ⚠️ **Os dados de venda, pedido e promoção são simulados.** A loja é nova
+> e não tem histórico acumulado — o mesmo problema de *cold start* que
+> justifica o motor de promoções ser regras + LLM em vez de um modelo
+> treinado. A simulação existe para a camada de indicadores ter o que
+> exibir e para o sistema ser demonstrável de ponta a ponta; ela **não**
+> mede a eficácia real do sistema na loja. A rotulagem aparece em quatro
+> pontos: prefixo `[simulação de seed]` na justificativa das sugestões,
+> `sinais_detectados["origem_dados"] = "seed_simulado"`, a variável
+> `DADOS_SIMULADOS` (banner na tela de Indicadores) e o aviso impresso ao
+> fim do script. Quem quer medir o LLM com dado **real** usa o harness de
+> avaliação (abaixo), que não depende da loja.
+>
+> A simulação é determinística: a mesma semente reproduz exatamente o
+> mesmo dataset, o que permite citar os parâmetros na monografia.
+
+#### Avaliação do LLM (evidência experimental)
+
+```bash
+python -m scripts.avaliar_llm --dry-run              # valida o pipeline, sem rede nem quota
+python -m scripts.avaliar_llm --produtos 10 --repeticoes 5
+```
+
+Roda os mesmos produtos N vezes em cada provedor e mede **consistência**
+(desvio e coeficiente de variação do desconto sugerido), **taxa de
+resposta inválida** por classe de erro, **latência** (média/p50/p95),
+**Groq × Gemini** nas mesmas entradas e **LLM × baseline determinístico**
+(erro médio em pontos percentuais e correlação de Spearman). Também mede
+quantas respostas do LLM o guard-rail de custo barrou.
+
+É script, não teste: assim `pytest` nunca gasta quota do free tier. Os
+resultados saem em CSV + um JSON de metadados (commit, modelos, hash do
+prompt, semente) em `backend/scripts/resultados/` — o hash do prompt
+importa porque, se o prompt mudar, coletas antigas deixam de ser
+comparáveis. `--limite-chamadas`, `--intervalo-ms` e o cache em disco
+protegem a quota.
 
 ### Frontend
 
@@ -109,15 +159,19 @@ backend/app/
   models/     # SQLAlchemy ORM
   schemas/    # Pydantic
   routers/    # endpoints FastAPI
-  services/   # regras de negócio
+  services/   # regras de negócio (price_service = único lugar que muda preço)
   ai/         # regras + integração com LLM (motor de sugestão de promoções)
-  jobs/       # rotinas agendadas (geração diária de sugestões, expiração de promoções)
+  jobs/       # rotinas agendadas (geração diária, expiração de promoções e pedidos)
   alembic/    # migrations
-  seed.py     # popula o catálogo + histórico de vendas simulado (rodar 1x)
+  seed.py     # catálogo + 90 dias de operação SIMULADA (rodar 1x)
+backend/scripts/
+  avaliar_llm.py   # harness de avaliação do LLM (consistência, Groq×Gemini, vs baseline)
+  resultados/      # CSVs + metadados das coletas — evidência da monografia
 
 frontend/src/
   cliente/       # área do cliente: scanner, carrinho, checkout
-  funcionario/   # área do funcionário: login, estoque, produtos, promoções, histórico de preços
+  funcionario/   # área do funcionário: caixa, estoque, produtos, promoções,
+                 #   indicadores, histórico de preços, displays
   api/           # client HTTP
   context/       # estado global (carrinho, autenticação)
 
@@ -126,7 +180,9 @@ backend/Procfile, railway.toml, .python-version   # deploy no Railway
 frontend/vercel.json                              # deploy no Vercel (rewrite de rotas)
 
 docs/displays-fisicos.md   # arquitetura/handoff dos displays físicos de prateleira
-firmware/                  # firmware de referência (ESP32) dos displays -- ver firmware/README.md
+firmware/                  # firmware de referência (ESP32) -- ver firmware/README.md
+  esp32_display_preco_epaper_pull/   # produção: e-paper + polling + deep sleep
+  esp32_display_preco_oled_mqtt/     # demonstração: OLED + push MQTT
 ```
 
 ## Status
@@ -194,15 +250,56 @@ firmware/                  # firmware de referência (ESP32) dos displays -- ver
 - **Fase 7 (displays físicos)**: backend/API/painel prontos e testados —
   modelo `display` (migration aplicada no Neon), `POST /displays/sincronizar`
   (dispositivo se autentica sozinho via token próprio, sem login de
-  funcionário), painel `/funcionario/displays` (criar, vincular a produto,
-  ver bateria/última sincronização, regenerar token) e firmware de
-  referência (ESP32, `firmware/esp32_display_preco/`) cobrindo wifi +
-  sincronização + deep sleep — falta só a função de desenho específica do
-  display escolhido. **Hardware ainda não comprado** — arquitetura
-  completa, contrato de API e roadmap de compra/montagem em
+  funcionário) e painel `/funcionario/displays` (criar, vincular a produto,
+  ver bateria/última sincronização, regenerar token).
+  **Duas variantes de firmware, que coexistem de propósito**:
+  - `firmware/esp32_display_preco_epaper_pull/` — **produção**: e-paper +
+    polling HTTP + deep sleep + bateria. É a arquitetura das etiquetas
+    comerciais (ESL), com meses de autonomia. Toda a parte de rede pronta;
+    falta a função de desenho do modelo de e-paper que for comprado.
+  - `firmware/esp32_display_preco_oled_mqtt/` — **demonstração**: OLED
+    SSD1306 + push MQTT + alimentação fixa. Aprovou a promoção no painel, a
+    etiqueta muda em menos de um segundo. **Completo**, incluindo a função
+    de desenho. O backend publica em `loja/displays/{id}/preco`
+    (`MQTT_ENABLED`, desligado por padrão — dev e CI rodam sem broker), e o
+    push é best-effort: broker fora do ar nunca derruba a aprovação.
+
+  Nenhuma substitui a outra: dormir para durar meses e ficar acordado para
+  receber push são incompatíveis, e o trade-off está documentado como
+  resultado do trabalho. **Hardware ainda não comprado** — comparação das
+  variantes, contrato do tópico MQTT e roadmap de compra/montagem em
   [`docs/displays-fisicos.md`](docs/displays-fisicos.md).
-- **Próxima**: Fase 6 — polimento para a banca (testes em iOS/Android
-  reais, roteiro de demo, redação da justificativa técnica da IA) — em
-  paralelo com a Fase 7 (comprar/montar o primeiro protótipo de display).
+- **Fase 6 (avaliação + fechamento do ciclo)**: implementada — cinco
+  frentes, sem nenhuma dependência nova:
+  - **Guard-rails de preço** (`price_service.validar_preco_promocional`):
+    piso de `custo × (1 + margem mínima)`, teto de desconto, recusa de
+    promoção sobre promoção e checagem de coerência entre o percentual e o
+    preço que o LLM devolve no mesmo JSON. Sugestão que fere o piso é
+    barrada antes de virar registro (aparece em `falhas` com categoria
+    `guard_rail`, o que é uma métrica em si); na aprovação devolve 422 e a
+    sugestão **continua pendente**. `promotion_service.aprovar` passou a
+    ser uma transação única — antes o preço mudava num commit e o status
+    da sugestão em outro.
+  - **Conferência no caixa**: `GET /pedidos/{numero}`,
+    `POST /pedidos/{numero}/conferir`, `GET /pedidos`,
+    `POST /pedidos/expirar-agora` + tela `/funcionario/caixa`. O enum já
+    tinha `CONFERIDO_NO_CAIXA` e nenhum código escrevia nele; agora esse é
+    o evento que marca a venda como concretizada. Pedido vencido ainda
+    pode ser conferido (cliente pega fila) e expirar **não** devolve
+    estoque — a mercadoria já saiu da prateleira.
+  - **Seed simulado** (ver aviso acima): 56 produtos, ~885 pedidos, ~3.600
+    unidades, 18 promoções históricas (2 ainda vigentes).
+  - **Camada de indicadores**: `/analytics/*` + tela
+    `/funcionario/indicadores` com taxa de aprovação da IA, desconto
+    sugerido × aplicado, tempo até decisão, Groq × Gemini, efeito de cada
+    promoção (antes/depois normalizado por dia) e capital parado. Gráficos
+    em SVG inline, sem biblioteca de charts. Só entram pedidos conferidos
+    no caixa.
+  - **Harness de avaliação do LLM** (`scripts/avaliar_llm.py`): a
+    evidência experimental que **não** depende de dado simulado.
+  162 testes automatizados (eram 72).
+- **Próxima**: polimento para a banca (testes em iOS/Android reais,
+  roteiro de demo, redação da justificativa técnica da IA) — em paralelo
+  com a Fase 7 (comprar/montar o primeiro protótipo de display).
 
 Roadmap completo das próximas fases no plano de implementação.

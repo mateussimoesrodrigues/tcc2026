@@ -7,15 +7,25 @@ from app.models.funcionario import Funcionario
 from app.models.promocao_sugestao import StatusSugestao
 from app.schemas.promocao import (
     AprovarSugestaoRequest,
+    ErroPrecoRead,
     FalhaGeracao,
     GerarSugestoesResposta,
     RejeitarSugestaoRequest,
     SugestaoRead,
 )
 from app.services import promotion_service
-from app.services.exceptions import SugestaoJaAvaliadaError, SugestaoNaoEncontradaError
+from app.services.exceptions import (
+    PrecoPromocionalInvalidoError,
+    PromocaoJaAtivaError,
+    SugestaoJaAvaliadaError,
+    SugestaoNaoEncontradaError,
+)
 
 router = APIRouter(prefix="/promocoes", tags=["promocoes"], dependencies=[Depends(get_current_funcionario)])
+
+
+def _erro_preco(e: PrecoPromocionalInvalidoError) -> dict:
+    return {"codigo": e.codigo, "mensagem": str(e), "detalhes": e.detalhes}
 
 
 @router.post("/gerar-agora", response_model=GerarSugestoesResposta)
@@ -47,13 +57,21 @@ def listar(status_filtro: StatusSugestao | None = None, db: Session = Depends(ge
     return [SugestaoRead.de_model(s) for s in sugestoes]
 
 
-@router.post("/{sugestao_id}/aprovar", response_model=SugestaoRead)
+@router.post(
+    "/{sugestao_id}/aprovar",
+    response_model=SugestaoRead,
+    responses={409: {"model": ErroPrecoRead}, 422: {"model": ErroPrecoRead}},
+)
 def aprovar(
     sugestao_id: int,
     dados: AprovarSugestaoRequest,
     db: Session = Depends(get_db),
     funcionario: Funcionario = Depends(get_current_funcionario),
 ):
+    """Aprovar aplica o preco de verdade -- por isso passa pelos guard-rails
+    (`price_service.validar_preco_promocional`). Preco que fere o piso de
+    custo devolve 422 e a sugestao **continua pendente**, pro funcionario
+    poder corrigir o custo do produto e tentar de novo (ou rejeitar)."""
     try:
         sugestao = promotion_service.aprovar(
             db,
@@ -67,6 +85,10 @@ def aprovar(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sugestao nao encontrada")
     except SugestaoJaAvaliadaError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Sugestao ja avaliada (status atual: {e})")
+    except PromocaoJaAtivaError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, _erro_preco(e))
+    except PrecoPromocionalInvalidoError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, _erro_preco(e))
     return SugestaoRead.de_model(sugestao)
 
 

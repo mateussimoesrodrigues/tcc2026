@@ -15,7 +15,7 @@ export default defineConfig({
         name: 'Precificação Inteligente',
         short_name: 'Precificação',
         description: 'Escaneie produtos, monte seu carrinho e finalize a compra.',
-        theme_color: '#111111',
+        theme_color: '#0c1017',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

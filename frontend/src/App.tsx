@@ -4,7 +4,9 @@ import Scanner from "./cliente/pages/Scanner";
 import Carrinho from "./cliente/pages/Carrinho";
 import Checkout from "./cliente/pages/Checkout";
 import Login from "./funcionario/pages/Login";
+import Caixa from "./funcionario/pages/Caixa";
 import DashboardEstoque from "./funcionario/pages/DashboardEstoque";
+import Indicadores from "./funcionario/pages/Indicadores";
 import Promocoes from "./funcionario/pages/Promocoes";
 import Produtos from "./funcionario/pages/Produtos";
 import Displays from "./funcionario/pages/Displays";
@@ -15,11 +17,28 @@ import { CartProvider } from "./context/CartContext";
 
 import "./App.css";
 
+// Marca da barra superior: barras ascendentes (preco/volume) + nome.
+// aria-hidden no SVG porque o nome ao lado ja e o rotulo textual.
+function Marca({ contexto }: { contexto?: string }) {
+  return (
+    <div className="app-brand">
+      <svg className="app-brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="1.5" y="13" width="5" height="8" rx="1" opacity="0.55" />
+        <rect x="9.5" y="8" width="5" height="13" rx="1" opacity="0.8" />
+        <rect x="17.5" y="3" width="5" height="18" rx="1" />
+      </svg>
+      <span className="app-brand-nome">Precificação</span>
+      {contexto && <span className="app-nav-tag">{contexto}</span>}
+    </div>
+  );
+}
+
 function ClienteLayout() {
   return (
     <CartProvider>
       <div className="app-shell">
         <nav className="app-nav">
+          <Marca />
           <NavLink to="/">Escanear</NavLink>
           <NavLink to="/carrinho">Carrinho</NavLink>
           <span className="app-nav-spacer" />
@@ -43,9 +62,14 @@ function FuncionarioNav() {
 
   return (
     <nav className="app-nav">
+      <Marca contexto="console" />
+      {/* Caixa vem primeiro: e a tela mais usada no balcao, atendendo
+          cliente atras de cliente. */}
+      <NavLink to="/funcionario/caixa">Caixa</NavLink>
       <NavLink to="/funcionario" end>Estoque</NavLink>
       <NavLink to="/funcionario/produtos">Produtos</NavLink>
       <NavLink to="/funcionario/promocoes">Promoções</NavLink>
+      <NavLink to="/funcionario/indicadores">Indicadores</NavLink>
       <NavLink to="/funcionario/historico-precos">Histórico</NavLink>
       <NavLink to="/funcionario/displays">Displays</NavLink>
       <span className="app-nav-spacer" />
@@ -79,6 +103,14 @@ function FuncionarioLayout() {
               }
             />
             <Route
+              path="caixa"
+              element={
+                <ProtectedRoute>
+                  <Caixa />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="produtos"
               element={
                 <ProtectedRoute>
@@ -91,6 +123,14 @@ function FuncionarioLayout() {
               element={
                 <ProtectedRoute>
                   <Promocoes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="indicadores"
+              element={
+                <ProtectedRoute>
+                  <Indicadores />
                 </ProtectedRoute>
               }
             />

@@ -23,6 +23,9 @@ from app.ai.rules import SinaisProduto
 from app.core.config import get_settings
 from app.services.exceptions import LLMIndisponivelError, RespostaLLMInvalidaError
 
+# Fallback historico do teto de desconto. O valor efetivo vem de
+# `Settings.desconto_maximo_percentual` (mesmo default), pra ficar
+# ajustavel por ambiente junto com os demais guard-rails de preco.
 DESCONTO_MAXIMO_PERMITIDO = Decimal("70")
 TIMEOUT_SEGUNDOS = 10
 PRIORIDADES_VALIDAS = {"baixa", "media", "alta"}
@@ -84,6 +87,14 @@ def _montar_prompt_usuario(sinais: SinaisProduto) -> str:
     else:
         linhas.append("Custo do produto nao informado -- estimativa de margem indisponivel")
     linhas.append(f"Proxima data comemorativa: {sinais.proxima_data_sazonal}, em {sinais.dias_ate_data_sazonal} dias")
+    # Informar o teto no proprio prompt tende a reduzir resposta invalida,
+    # mas isso e uma hipotese -- por isso fica atras de uma flag, pro
+    # harness (scripts/avaliar_llm.py) conseguir medir os dois bracos.
+    if get_settings().informar_piso_no_prompt and sinais.desconto_maximo_permitido is not None:
+        linhas.append(
+            f"Desconto maximo permitido pela politica da loja para este produto: "
+            f"{sinais.desconto_maximo_permitido:.0f}% (acima disso a venda fica abaixo do custo)"
+        )
     return "\n".join(linhas)
 
 
@@ -94,7 +105,13 @@ def _extrair_json(texto: str) -> dict:
         raise RespostaLLMInvalidaError(f"Resposta do LLM nao e JSON valido: {e}") from e
 
 
-def _validar_resposta(dados: dict, modelo: str) -> SugestaoLLM:
+def _validar_resposta(dados: dict, modelo: str, *, preco_normal: Decimal | None = None) -> SugestaoLLM:
+    """Valida a resposta do LLM contra o schema esperado e as faixas de
+    negocio. `preco_normal`, quando informado, habilita a checagem de
+    coerencia entre `percentual_desconto_sugerido` e `preco_sugerido` -- o
+    modelo as vezes devolve o par inconsistente (ex.: anuncia "30% off" e
+    manda um preco que e 10% off). Keyword-only com default `None` pra nao
+    exigir o parametro de quem so quer validar o schema."""
     try:
         percentual = Decimal(str(dados["percentual_desconto_sugerido"]))
         preco_sugerido = Decimal(str(dados["preco_sugerido"]))
@@ -103,9 +120,10 @@ def _validar_resposta(dados: dict, modelo: str) -> SugestaoLLM:
     except (KeyError, TypeError, ValueError, InvalidOperation) as e:
         raise RespostaLLMInvalidaError(f"Campo ausente ou invalido na resposta do LLM: {e}") from e
 
-    if not (0 <= percentual <= DESCONTO_MAXIMO_PERMITIDO):
+    desconto_maximo = Decimal(str(get_settings().desconto_maximo_percentual))
+    if not (0 <= percentual <= desconto_maximo):
         raise RespostaLLMInvalidaError(
-            f"Desconto sugerido fora da faixa permitida (0-{DESCONTO_MAXIMO_PERMITIDO}%): {percentual}"
+            f"Desconto sugerido fora da faixa permitida (0-{desconto_maximo}%): {percentual}"
         )
     if preco_sugerido <= 0:
         raise RespostaLLMInvalidaError(f"Preco sugerido invalido: {preco_sugerido}")
@@ -113,6 +131,20 @@ def _validar_resposta(dados: dict, modelo: str) -> SugestaoLLM:
         raise RespostaLLMInvalidaError("Justificativa vazia na resposta do LLM")
     if prioridade not in PRIORIDADES_VALIDAS:
         prioridade = "media"  # tolera variacao/sinonimo sem descartar a sugestao inteira
+
+    if preco_normal is not None and preco_normal > 0:
+        esperado = preco_normal * (1 - percentual / Decimal("100"))
+        # Divergencia medida em pontos percentuais do preco normal (nao
+        # relativa ao esperado): nao explode em produtos baratos e e
+        # diretamente interpretavel ("errou por 3 p.p. do preco").
+        divergencia_pp = abs(preco_sugerido - esperado) / preco_normal * Decimal("100")
+        tolerancia = Decimal(str(get_settings().tolerancia_coerencia_pp))
+        if divergencia_pp > tolerancia:
+            raise RespostaLLMInvalidaError(
+                f"Incoerencia entre desconto ({percentual}%) e preco sugerido "
+                f"(R$ {preco_sugerido}); esperado ~R$ {esperado:.2f} "
+                f"(divergencia de {divergencia_pp:.1f} p.p., tolerancia {tolerancia} p.p.)"
+            )
 
     return SugestaoLLM(
         percentual_desconto=percentual,
@@ -169,17 +201,19 @@ def gerar_sugestao_llm(sinais: SinaisProduto, *, client: httpx.Client | None = N
     fechar_client = client is None
     client = client or httpx.Client(timeout=TIMEOUT_SEGUNDOS)
 
+    preco_normal = Decimal(str(sinais.preco_normal))
+
     erros: list[str] = []
     try:
         try:
             dados = _chamar_groq(client, sinais, settings.groq_api_key)
-            return _validar_resposta(dados, f"groq/{GROQ_MODELO}")
+            return _validar_resposta(dados, f"groq/{GROQ_MODELO}", preco_normal=preco_normal)
         except (httpx.HTTPError, LLMIndisponivelError, RespostaLLMInvalidaError) as e:
             erros.append(f"groq: {e}")
 
         try:
             dados = _chamar_gemini(client, sinais, settings.gemini_api_key)
-            return _validar_resposta(dados, f"gemini/{GEMINI_MODELO}")
+            return _validar_resposta(dados, f"gemini/{GEMINI_MODELO}", preco_normal=preco_normal)
         except (httpx.HTTPError, LLMIndisponivelError, RespostaLLMInvalidaError) as e:
             erros.append(f"gemini: {e}")
     finally:

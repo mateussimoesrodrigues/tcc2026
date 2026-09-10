@@ -85,7 +85,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setErro(null);
       try {
         await recarregar();
-      } catch {
+      } catch (err) {
+        // A mensagem na tela e generica de proposito (o cliente nao tem o
+        // que fazer com um status HTTP), mas sem o erro cru no console
+        // nao da pra distinguir sessao invalida de backend fora do ar --
+        // e o backend nao loga nada quando a falha e de rede/CORS.
+        console.error("Falha ao abrir o carrinho:", err);
         setErro("Não foi possível abrir o carrinho.");
       } finally {
         setCarregando(false);

@@ -18,7 +18,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.database import SessionLocal
-from app.services import promotion_service
+from app.services import order_service, promotion_service
 
 _scheduler: BackgroundScheduler | None = None
 
@@ -26,9 +26,13 @@ INTERVALO_EXPIRACAO_MINUTOS = 15
 
 
 def _rodar_job_expiracao() -> None:
+    """Duas expiracoes baratas (so banco) na mesma passada: promocoes que
+    venceram voltam ao preco normal, e pedidos que ninguem levou ao caixa
+    saem de GERADO (sem mexer em estoque -- ver order_service)."""
     db = SessionLocal()
     try:
         promotion_service.expirar_promocoes_vencidas(db)
+        order_service.expirar_pedidos_vencidos(db)
     finally:
         db.close()
 

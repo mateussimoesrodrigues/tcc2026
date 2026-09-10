@@ -44,6 +44,33 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     gemini_api_key: str = ""
 
+    # --- Guard-rails de preco (ver services/price_service.py) -------------
+    # Nenhuma promocao pode deixar o preco abaixo de
+    # custo * (1 + margem_minima_percentual/100). E o piso que impede a IA
+    # (ou o funcionario aprovando na correria) de vender no prejuizo.
+    margem_minima_percentual: float = 10.0
+    # Teto de desconto, aplicado tanto na validacao da resposta do LLM
+    # quanto na aplicacao do preco.
+    desconto_maximo_percentual: float = 70.0
+    # Produto sem `custo` cadastrado nao tem piso calculavel. True = deixa a
+    # promocao passar mesmo assim (realidade da loja: nem todo custo esta
+    # lancado). False = recusa, postura mais conservadora.
+    permitir_promocao_sem_custo: bool = True
+    # Divergencia maxima tolerada, em pontos percentuais do preco normal,
+    # entre o `preco_sugerido` e o preco derivado do
+    # `percentual_desconto_sugerido` -- pega LLM que devolve o par
+    # incoerente (ex.: "30% off" com preco de 10% off).
+    tolerancia_coerencia_pp: float = 2.0
+    # Informa o desconto maximo permitido dentro do proprio prompt. Fica
+    # como flag pra virar braco de A/B no harness de avaliacao
+    # (scripts/avaliar_llm.py): informar o limite reduz resposta invalida?
+    informar_piso_no_prompt: bool = True
+
+    # Marca os dados de venda/promocao como simulados (gerados por
+    # `app/seed.py`, nao pela operacao real da loja). Alimenta o banner de
+    # aviso na tela de indicadores -- honestidade metodologica pro TCC.
+    dados_simulados: bool = True
+
     # Job diario do motor de promocoes (gerar sugestoes + expirar
     # promocoes vencidas). Desligado por padrao -- o TestClient do pytest
     # dispara os eventos de startup do FastAPI a cada teste, e um
@@ -58,6 +85,26 @@ class Settings(BaseSettings):
     # de fixo no firmware, pra dar pra apertar (demo) ou alongar (producao,
     # poupar bateria) sem reflashear os dispositivos.
     display_sync_intervalo_segundos: int = 300
+
+    # --- Push MQTT pros displays (variante de demonstracao) --------------
+    # Existem duas variantes de firmware (ver docs/displays-fisicos.md):
+    # e-paper + polling + deep sleep (producao, autonomia de bateria) e
+    # OLED + MQTT push + alimentacao fixa (demonstracao, atualizacao
+    # instantanea). O push abaixo alimenta a segunda.
+    #
+    # Desligado por padrao de proposito: dev e CI nao tem broker, e o
+    # sistema inteiro funciona sem ele -- a mudanca de preco no banco e a
+    # fonte da verdade, o push e best-effort por cima disso.
+    mqtt_enabled: bool = False
+    mqtt_host: str = ""
+    # 8883 = MQTT sobre TLS (padrao dos brokers gerenciados, ex.: HiveMQ
+    # Cloud). 1883 = sem TLS, so pra broker local (ex.: mosquitto na LAN).
+    mqtt_port: int = 8883
+    mqtt_username: str = ""
+    mqtt_password: str = ""
+    mqtt_use_tls: bool = True
+    # Topico publicado: {prefixo}/{display_id}/preco
+    mqtt_topic_prefix: str = "loja/displays"
 
     @property
     def sqlalchemy_database_url(self) -> str:

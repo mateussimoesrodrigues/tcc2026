@@ -1,75 +1,87 @@
 /* ===========================================================================
-   Design tokens + base.
+   Tokens e base.
 
-   Identidade visual: loja de armarinho/artesanato -- paleta quente de barro
-   (terracota), fundo cor de linho, verde-sálvia para estados positivos e
-   dourado para alertas. Cantos arredondados e sombras suaves de tom quente
-   passam a sensação tátil/artesanal, em vez do cinza-azulado frio padrão de
-   dashboard.
+   Identidade: painel de operacao. Neutros frios de grafite, um unico azul
+   de sinal para acao/foco, numeros sempre em monoespacada tabular. Cantos
+   retos, hairline no lugar de sombra, densidade alta -- a referencia sao
+   ferramentas internas (terminal de PDV, console de monitoramento), nao
+   landing page.
 
-   Tema fixo em modo claro (nao segue prefers-color-scheme): e um app usado
-   no balcao da loja e no celular do cliente, entao previsibilidade visual
-   vale mais que adaptar ao tema do sistema.
+   Tema fixo em claro: o app roda no balcao e no celular do cliente, entao
+   previsibilidade vale mais que seguir prefers-color-scheme.
    =========================================================================== */
 
 :root {
-  /* Barro / terracota -- cor primaria (acoes, links, destaques) */
-  --clay-50: #fdf6f2;
-  --clay-100: #f9e9e0;
-  --clay-200: #f1d5c6;
-  --clay-300: #e4b49b;
-  --clay-400: #d38f6f;
-  --clay-500: #c0714f;
-  --clay-600: #a85c3d;
-  --clay-700: #8a4931;
-  --clay-800: #663828;
-  --clay-900: #422620;
+  /* Grafite -- estrutura, texto e superficies escuras */
+  --ink-950: #0c1017;
+  --ink-900: #151a23;
+  --ink-800: #232a36;
+  --ink-700: #3a4352;
+  --ink-600: #4e5867;
+  --ink-500: #67707f;
+  --ink-400: #8b94a2;
+  --ink-300: #b3bac5;
 
-  /* Neutros quentes (nao cinza puro -- puxam pro bege/linho) */
-  --bg: #faf6f1;
+  /* Azul de sinal -- acao, foco, serie principal dos graficos */
+  --accent-50: #eff3ff;
+  --accent-100: #dfe6ff;
+  --accent-200: #c4d0fe;
+  --accent-300: #9daefb;
+  --accent-400: #7186f6;
+  --accent-500: #4c62ee;
+  --accent-600: #2f45db;
+  --accent-700: #2434ac;
+  --accent-800: #1e2b85;
+
+  /* Superficies (cinza levemente azulado, nao bege) */
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --surface-muted: #f6efe8;
-  --border: #ebdfd4;
-  --border-strong: #dccbbb;
+  --surface-muted: #f2f5f9;
+  --surface-sunken: #eaeef4;
+  --border: #e2e7ef;
+  --border-strong: #cbd3e0;
 
-  --text: #3f342e;
-  --text-muted: #7d6b5f;
-  --text-soft: #a39285;
-  --text-inverse: #fffaf6;
+  --text: #1d2430;
+  --text-muted: #5b6575;
+  --text-soft: #8b94a2;
+  --text-inverse: #ffffff;
 
   /* Estados */
-  --success: #4f7a4d;
-  --success-bg: #edf4ec;
-  --success-border: #cfe1cd;
+  --success: #0d7a52;
+  --success-strong: #095c3d;
+  --success-bg: #e7f5ef;
+  --success-border: #bce0d1;
 
-  --warning: #9a6f16;
-  --warning-bg: #fdf3df;
-  --warning-border: #f0dfb8;
+  --warning: #8a5a06;
+  --warning-strong: #6b4504;
+  --warning-bg: #fdf2df;
+  --warning-border: #f2ddb4;
 
-  --danger: #b04437;
-  --danger-bg: #fbeae7;
-  --danger-border: #f2cec8;
+  --danger: #c22b34;
+  --danger-strong: #971f26;
+  --danger-bg: #fdecec;
+  --danger-border: #f4cbcd;
 
-  /* Sombras com tom quente (nao preto puro) */
-  --shadow-xs: 0 1px 2px rgba(66, 38, 32, 0.06);
-  --shadow-sm: 0 1px 2px rgba(66, 38, 32, 0.05), 0 2px 6px rgba(66, 38, 32, 0.05);
-  --shadow-md: 0 2px 4px rgba(66, 38, 32, 0.05), 0 8px 20px rgba(66, 38, 32, 0.08);
-  --shadow-lg: 0 4px 8px rgba(66, 38, 32, 0.06), 0 16px 36px rgba(66, 38, 32, 0.1);
+  /* Sombras neutras e discretas: a hierarquia vem da borda, nao do blur */
+  --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 14px 34px rgba(15, 23, 42, 0.11);
 
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
   --radius-pill: 999px;
 
-  --sans: "DM Sans", system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: "Fraunces", Georgia, "Times New Roman", serif;
-  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  --display: var(--sans);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
 
-  --ring: 0 0 0 3px var(--clay-200);
-  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ring: 0 0 0 3px var(--accent-200);
+  --transition: 130ms cubic-bezier(0.4, 0, 0.2, 1);
 
   font-family: var(--sans);
-  font-size: 16px;
+  font-size: 15.5px;
   line-height: 1.55;
   color: var(--text);
   background-color: var(--bg);
@@ -91,11 +103,13 @@ body {
   margin: 0;
   min-height: 100svh;
   background-color: var(--bg);
-  /* Textura sutil de "linho": dois gradientes radiais quase imperceptiveis
-     que tiram a chapadao do fundo solido sem virar ruido visual. */
+  /* Malha tecnica de 28px, quase invisivel (2.5% de opacidade). Tira o
+     chapado do fundo solido e da uma referencia de alinhamento sem virar
+     textura decorativa. */
   background-image:
-    radial-gradient(circle at 15% 12%, rgba(224, 180, 155, 0.16), transparent 42%),
-    radial-gradient(circle at 85% 8%, rgba(214, 196, 168, 0.14), transparent 38%);
+    linear-gradient(to right, rgba(35, 42, 54, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(35, 42, 54, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
   background-attachment: fixed;
 }
 
@@ -110,22 +124,22 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--heading);
-  color: var(--clay-900);
+  font-family: var(--display);
+  color: var(--ink-900);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 h1 {
-  font-size: clamp(1.6rem, 1.32rem + 1.2vw, 2.05rem);
-  line-height: 1.18;
-  margin: 0 0 0.4rem;
+  font-size: clamp(1.5rem, 1.3rem + 0.9vw, 1.85rem);
+  line-height: 1.2;
+  margin: 0 0 0.35rem;
 }
 
 h2 {
-  font-size: 1.3rem;
-  line-height: 1.25;
+  font-size: 1.18rem;
+  line-height: 1.3;
   margin: 0 0 0.5rem;
 }
 
@@ -139,31 +153,40 @@ p:last-child {
 }
 
 a {
-  color: var(--clay-700);
+  color: var(--accent-700);
   text-underline-offset: 2px;
 }
 
 strong {
   font-weight: 600;
-  color: var(--clay-900);
+  color: var(--ink-900);
+}
+
+/* Numero e dinheiro em qualquer lugar: mesma largura de digito, para as
+   colunas continuarem alinhadas quando o valor muda. */
+code,
+.celula-mono,
+input[type="number"],
+time {
+  font-variant-numeric: tabular-nums;
 }
 
 code {
   font-family: var(--mono);
-  font-size: 0.88em;
-  padding: 0.15em 0.42em;
-  border-radius: 6px;
+  font-size: 0.86em;
+  padding: 0.12em 0.4em;
+  border-radius: 3px;
   background: var(--surface-muted);
   border: 1px solid var(--border);
-  color: var(--clay-800);
+  color: var(--ink-800);
 }
 
 /* --- Acessibilidade ------------------------------------------------------ */
 
 :focus-visible {
-  outline: 2px solid var(--clay-600);
+  outline: 2px solid var(--accent-600);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 /* Respeita quem pediu menos animacao no sistema (a11y): mantem tudo

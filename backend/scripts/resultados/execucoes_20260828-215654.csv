@@ -1,0 +1,10 @@
+timestamp,produto_id,produto_nome,provedor,modelo,temperatura,repeticao,informar_piso,sucesso,classe_erro,erro,percentual,preco,prioridade,latencia_ms,coerente,respeita_piso,desconto_baseline,desconto_maximo_permitido,justificativa_chars,origem
+2026-08-29T00:56:37+00:00,2,Cola Pano,groq,groq/openai/gpt-oss-120b,0.3,1,True,True,,,35.0,4.88,alta,1661.7,True,True,25.0,37.87,136,rede
+2026-08-29T00:56:39+00:00,2,Cola Pano,groq,groq/openai/gpt-oss-120b,0.3,2,True,True,,,30.0,5.25,alta,1133.7,True,True,25.0,37.87,154,rede
+2026-08-29T00:56:41+00:00,2,Cola Pano,groq,groq/openai/gpt-oss-120b,0.3,3,True,True,,,30.0,5.25,alta,1125.4,True,True,25.0,37.87,164,rede
+2026-08-29T00:56:42+00:00,6,Cola Permanente,groq,groq/openai/gpt-oss-120b,0.3,1,True,True,,,30.0,5.11,alta,2381.5,True,True,25.0,46.44,174,rede
+2026-08-29T00:56:45+00:00,6,Cola Permanente,groq,groq/openai/gpt-oss-120b,0.3,2,True,True,,,30.0,5.11,alta,1192.0,True,True,25.0,46.44,153,rede
+2026-08-29T00:56:47+00:00,6,Cola Permanente,groq,groq/openai/gpt-oss-120b,0.3,3,True,True,,,35.0,4.75,alta,1411.8,True,True,25.0,46.44,143,rede
+2026-08-29T00:56:49+00:00,25,Tinta PVA,groq,groq/openai/gpt-oss-120b,0.3,1,True,True,,,35.0,3.58,alta,1201.7,True,True,15.0,48.55,155,rede
+2026-08-29T00:56:50+00:00,25,Tinta PVA,groq,groq/openai/gpt-oss-120b,0.3,2,True,True,,,35.0,3.58,alta,1713.8,True,True,15.0,48.55,103,rede
+2026-08-29T00:56:53+00:00,25,Tinta PVA,groq,groq/openai/gpt-oss-120b,0.3,3,True,True,,,45.0,3.03,alta,1249.3,True,True,15.0,48.55,106,rede

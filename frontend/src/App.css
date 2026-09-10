@@ -1,7 +1,7 @@
 /* ===========================================================================
-   Componentes da interface. Tokens de cor/tipografia/sombra vem do
-   index.css. Nenhuma classe nova foi inventada aqui: todas correspondem
-   as que ja existem nos componentes React.
+   Componentes da interface. Cor, tipografia e sombra saem dos tokens de
+   index.css -- aqui so tem layout e estado. Toda classe daqui existe em
+   algum componente React; nada e estilo especulativo.
    =========================================================================== */
 
 /* --- Shell e navegacao --------------------------------------------------- */
@@ -12,18 +12,20 @@
   flex-direction: column;
 }
 
+/* Barra escura fixa no topo: separa "chrome do sistema" de "conteudo da
+   tela" sem precisar de sombra, e sobrevive ao scroll de qualquer lista
+   longa (estoque, historico de precos). */
 .app-nav {
   position: sticky;
   top: 0;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.7rem clamp(0.75rem, 3vw, 1.5rem);
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  gap: 0.15rem;
+  padding: 0 clamp(0.7rem, 3vw, 1.4rem);
+  height: 52px;
+  background: var(--ink-950);
+  border-bottom: 1px solid var(--ink-800);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -32,27 +34,69 @@
   display: none;
 }
 
-.app-nav a {
-  padding: 0.45rem 0.85rem;
-  border-radius: var(--radius-pill);
-  text-decoration: none;
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: 0.94rem;
+/* Marca: barras ascendentes + nome. Some abaixo de 620px para o menu de
+   sete itens do funcionario nao ficar preso na rolagem horizontal. */
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: 1.1rem;
   white-space: nowrap;
-  transition: background var(--transition), color var(--transition);
+  user-select: none;
+}
+
+.app-brand-mark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: var(--accent-400);
+}
+
+.app-brand-nome {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.app-nav-tag {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-300);
+  border: 1px solid rgba(157, 174, 251, 0.35);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+}
+
+.app-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.8rem;
+  text-decoration: none;
+  color: var(--ink-300);
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition);
 }
 
 .app-nav a:hover {
-  background: var(--clay-50);
-  color: var(--clay-700);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
+/* Aba ativa marcada por sublinhado de 2px encostado na borda da barra --
+   nao muda a largura do item, entao a navegacao nao "pula" ao trocar de
+   tela. */
 .app-nav a.active {
-  background: var(--clay-600);
-  color: var(--text-inverse);
+  color: #fff;
   font-weight: 600;
-  box-shadow: var(--shadow-xs);
+  box-shadow: inset 0 -2px 0 var(--accent-400);
 }
 
 .app-nav-spacer {
@@ -60,10 +104,40 @@
 }
 
 .app-nav-usuario {
-  color: var(--text-muted);
-  font-size: 0.88rem;
+  font-family: var(--mono);
+  color: var(--ink-400);
+  font-size: 0.78rem;
   white-space: nowrap;
-  padding-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--ink-800);
+  margin-left: 0.5rem;
+}
+
+.app-nav .link-button {
+  color: var(--ink-300);
+  font-size: 0.85rem;
+  text-decoration: none;
+  padding: 0.3rem 0.55rem;
+  margin-left: 0.35rem;
+  border: 1px solid var(--ink-800);
+  border-radius: var(--radius-sm);
+}
+
+.app-nav .link-button:hover {
+  color: #fff;
+  border-color: var(--ink-700);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 620px) {
+  .app-brand-nome,
+  .app-nav-tag {
+    display: none;
+  }
+
+  .app-brand {
+    margin-right: 0.6rem;
+  }
 }
 
 main {
@@ -101,6 +175,8 @@ main {
 .scanner-manual-form button,
 .nova-categoria button,
 .carrinho-item-qtd button,
+.caixa-busca button[type="submit"],
+.caixa-confirmar-btn,
 .scanner-ir-carrinho {
   font-family: inherit;
   font-weight: 600;
@@ -115,10 +191,12 @@ main {
 .promo-gerar-btn,
 .promo-acoes button,
 .form-acoes button[type="submit"],
-.scanner-manual-form button {
-  background: var(--clay-600);
+.scanner-manual-form button,
+.caixa-busca button[type="submit"],
+.caixa-confirmar-btn {
+  background: var(--ink-900);
   color: var(--text-inverse);
-  border: 1px solid var(--clay-600);
+  border: 1px solid var(--ink-900);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
 }
@@ -129,11 +207,12 @@ main {
 .promo-gerar-btn:hover:not(:disabled),
 .promo-acoes button:hover:not(:disabled),
 .form-acoes button[type="submit"]:hover:not(:disabled),
-.scanner-manual-form button:hover:not(:disabled) {
-  background: var(--clay-700);
-  border-color: var(--clay-700);
+.scanner-manual-form button:hover:not(:disabled),
+.caixa-busca button[type="submit"]:hover:not(:disabled),
+.caixa-confirmar-btn:hover:not(:disabled) {
+  background: var(--ink-800);
+  border-color: var(--ink-800);
   box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
 }
 
 .form button:not(.link-button):active:not(:disabled),
@@ -142,9 +221,12 @@ main {
 .promo-gerar-btn:active:not(:disabled),
 .promo-acoes button:active:not(:disabled),
 .form-acoes button[type="submit"]:active:not(:disabled),
-.scanner-manual-form button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-xs);
+.scanner-manual-form button:active:not(:disabled),
+.caixa-busca button[type="submit"]:active:not(:disabled),
+.caixa-confirmar-btn:active:not(:disabled) {
+  background: var(--ink-950);
+  border-color: var(--ink-950);
+  box-shadow: none;
 }
 
 .form button:not(.link-button):disabled,
@@ -153,10 +235,13 @@ main {
 .promo-gerar-btn:disabled,
 .promo-acoes button:disabled,
 .form-acoes button[type="submit"]:disabled,
-.scanner-manual-form button:disabled {
-  opacity: 0.55;
+.scanner-manual-form button:disabled,
+.caixa-busca button[type="submit"]:disabled,
+.caixa-confirmar-btn:disabled {
+  background: var(--border-strong);
+  border-color: var(--border-strong);
+  color: var(--surface);
   cursor: default;
-  transform: none;
   box-shadow: none;
 }
 
@@ -165,7 +250,7 @@ main {
   border: none;
   padding: 0.35rem 0.15rem;
   cursor: pointer;
-  color: var(--clay-700);
+  color: var(--accent-700);
   font: inherit;
   font-weight: 500;
   text-decoration: underline;
@@ -176,7 +261,7 @@ main {
 }
 
 .link-button:hover {
-  color: var(--clay-800);
+  color: var(--ink-800);
 }
 
 /* --- Formularios --------------------------------------------------------- */
@@ -191,11 +276,13 @@ main {
 .form label {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  font-weight: 600;
+  gap: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   color: var(--text-muted);
-  letter-spacing: 0.01em;
 }
 
 /* :not([type="checkbox"]) em toda parte: as caixas de selecao ficam dentro
@@ -237,7 +324,7 @@ main {
 .nova-categoria input:focus,
 .promo-observacao:focus {
   outline: none;
-  border-color: var(--clay-500);
+  border-color: var(--accent-500);
   box-shadow: var(--ring);
 }
 
@@ -276,7 +363,7 @@ main {
 .checkbox-label input[type="checkbox"] {
   width: 1.05rem;
   height: 1.05rem;
-  accent-color: var(--clay-600);
+  accent-color: var(--accent-600);
   cursor: pointer;
 }
 
@@ -321,7 +408,6 @@ main {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
 }
 
 .tabela-estoque {
@@ -332,11 +418,12 @@ main {
 
 .tabela-estoque th {
   text-align: left;
-  padding: 0.75rem 0.9rem;
+  padding: 0.6rem 0.9rem;
   background: var(--surface-muted);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.75rem;
-  font-weight: 700;
+  border-bottom: 1px solid var(--border-strong);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -360,7 +447,7 @@ main {
 }
 
 .tabela-estoque tbody tr:hover {
-  background: var(--clay-50);
+  background: var(--surface-muted);
 }
 
 .tabela-estoque tr.linha-baixa {
@@ -368,7 +455,7 @@ main {
 }
 
 .tabela-estoque tr.linha-baixa:hover {
-  background: #fbeccd;
+  background: #f9ecd2;
 }
 
 .tabela-estoque tr.linha-baixa td:first-child {
@@ -386,18 +473,36 @@ main {
 }
 
 .scanner-camera-reader {
+  position: relative;
   width: 100%;
   max-width: 400px;
   min-height: 280px;
   margin: 0 auto;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--clay-900);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  background: var(--ink-950);
+  border: 1px solid var(--ink-800);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.scanner-camera-reader::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  pointer-events: none;
+  --cor-visor: rgba(255, 255, 255, 0.75);
+  --traco: linear-gradient(var(--cor-visor), var(--cor-visor));
+  background:
+    var(--traco) left top / 26px 2px no-repeat,
+    var(--traco) left top / 2px 26px no-repeat,
+    var(--traco) right top / 26px 2px no-repeat,
+    var(--traco) right top / 2px 26px no-repeat,
+    var(--traco) left bottom / 26px 2px no-repeat,
+    var(--traco) left bottom / 2px 26px no-repeat,
+    var(--traco) right bottom / 26px 2px no-repeat,
+    var(--traco) right bottom / 2px 26px no-repeat;
 }
 
 /* html5-qrcode injeta o <video> direto nesse container -- forcamos ele a
@@ -434,8 +539,9 @@ main {
 
 .scanner-manual summary {
   cursor: pointer;
-  color: var(--clay-700);
+  color: var(--ink-800);
   font-weight: 500;
+  font-size: 0.9rem;
   list-style: none;
   display: flex;
   align-items: center;
@@ -447,9 +553,11 @@ main {
 }
 
 .scanner-manual summary::before {
-  content: "＋";
-  font-size: 0.9em;
-  color: var(--clay-500);
+  content: "+";
+  font-family: var(--mono);
+  font-size: 1.05em;
+  line-height: 1;
+  color: var(--accent-600);
   transition: transform var(--transition);
 }
 
@@ -489,7 +597,7 @@ main {
 .scanner-resultado-ok {
   background: var(--success-bg);
   border-color: var(--success-border);
-  color: #2f4d2e;
+  color: var(--success-strong);
   box-shadow: inset 3px 0 0 var(--success);
 }
 
@@ -516,15 +624,15 @@ main {
   padding: 0.75rem 1rem;
   font-size: 1rem;
   border-radius: var(--radius-sm);
-  border: 1.5px solid var(--clay-600);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  color: var(--clay-700);
+  color: var(--ink-900);
   margin-top: 0.5rem;
 }
 
 .scanner-ir-carrinho:hover {
-  background: var(--clay-50);
-  border-color: var(--clay-700);
+  background: var(--surface-muted);
+  border-color: var(--ink-400);
 }
 
 /* --- Carrinho ------------------------------------------------------------ */
@@ -574,28 +682,29 @@ main {
 .carrinho-item-qtd {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   background: var(--surface-muted);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 0.2rem;
 }
 
 .carrinho-item-qtd button {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  border: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--clay-700);
+  color: var(--ink-800);
   font-size: 1.05rem;
   line-height: 1;
   box-shadow: var(--shadow-xs);
 }
 
 .carrinho-item-qtd button:hover {
-  background: var(--clay-600);
+  background: var(--ink-900);
   color: var(--text-inverse);
 }
 
@@ -610,7 +719,7 @@ main {
   font-weight: 600;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  color: var(--clay-800);
+  color: var(--ink-800);
 }
 
 .carrinho-item-remover {
@@ -641,8 +750,10 @@ main {
 }
 
 .carrinho-total strong {
-  font-family: var(--heading);
-  font-size: 1.5rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: var(--ink-900);
   font-variant-numeric: tabular-nums;
 }
 
@@ -655,22 +766,33 @@ main {
 
 /* --- Checkout ------------------------------------------------------------ */
 
-/* Cara de comprovante/senha de caixa: fundo claro, borda tracejada e o
-   numero grande com espacamento largo, pra ser lido de longe no balcao. */
+/* Senha do pedido: painel escuro, numero em mono com tracking largo. O
+   contraste invertido garante leitura a distancia no balcao, e a faixa de
+   acento no topo amarra com a barra de navegacao. */
 .checkout-numero {
-  font-family: var(--heading);
-  font-size: clamp(2.4rem, 1.8rem + 3vw, 3.4rem);
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  position: relative;
+  font-family: var(--mono);
+  font-size: clamp(2.3rem, 1.7rem + 3vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
   text-align: center;
-  color: var(--clay-700);
+  color: #fff;
   margin: 1.25rem 0;
-  padding: 1.5rem 1rem;
-  background: var(--surface);
-  border: 2px dashed var(--clay-300);
+  padding: 1.6rem 1rem 1.4rem;
+  background: var(--ink-950);
+  border: 1px solid var(--ink-900);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  overflow: hidden;
   font-variant-numeric: tabular-nums;
+}
+
+.checkout-numero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-600), var(--accent-400));
 }
 
 /* Os botoes de navegacao do Checkout ("Escanear novo produto", "Voltar ao
@@ -684,24 +806,17 @@ main {
   padding: 0.75rem 1.35rem;
   margin-top: 0.5rem;
   border-radius: var(--radius-sm);
-  border: 1.5px solid var(--clay-600);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  color: var(--clay-700);
+  color: var(--ink-900);
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition),
     transform var(--transition), box-shadow var(--transition);
 }
 
 .page > button:not([class]):hover {
-  background: var(--clay-50);
-  border-color: var(--clay-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.page > button:not([class]):active {
-  transform: translateY(0);
-  box-shadow: none;
+  background: var(--surface-muted);
+  border-color: var(--ink-400);
 }
 
 /* Lista de itens sem estoque suficiente na tela de checkout */
@@ -711,7 +826,7 @@ main {
   background: var(--warning-bg);
   border: 1px solid var(--warning-border);
   border-radius: var(--radius);
-  color: #6f5010;
+  color: var(--warning-strong);
   font-size: 0.93rem;
 }
 
@@ -762,7 +877,7 @@ main {
 }
 
 .produtos-desativar:hover {
-  color: #8f342a;
+  color: var(--danger-strong);
 }
 
 .form-produto {
@@ -791,17 +906,16 @@ main {
 .nova-categoria button:not(.link-button) {
   padding: 0.55rem 0.9rem;
   border-radius: var(--radius-sm);
-  border: 1.5px solid var(--clay-600);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  color: var(--clay-700);
+  color: var(--ink-900);
   white-space: nowrap;
   box-shadow: none;
 }
 
 .nova-categoria button:not(.link-button):hover {
-  background: var(--clay-50);
-  border-color: var(--clay-700);
-  transform: none;
+  background: var(--surface-muted);
+  border-color: var(--ink-400);
   box-shadow: none;
 }
 
@@ -812,9 +926,11 @@ main {
 }
 
 .produto-codigos strong {
-  font-size: 0.82rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
@@ -833,7 +949,7 @@ main {
   padding: 0.4rem 0.6rem;
   background: var(--surface-muted);
   border-radius: var(--radius-sm);
-  color: var(--clay-800);
+  color: var(--ink-800);
 }
 
 /* --- Promocoes (funcionario) --------------------------------------------- */
@@ -879,7 +995,7 @@ main {
   background: var(--success-bg);
   border: 1px solid var(--success-border);
   border-radius: var(--radius-sm);
-  color: #2f4d2e;
+  color: var(--success-strong);
   font-size: 0.92rem;
   font-weight: 500;
 }
@@ -914,8 +1030,8 @@ main {
 }
 
 .promo-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .promo-card-header {
@@ -927,7 +1043,7 @@ main {
 }
 
 .promo-card-header strong {
-  font-family: var(--heading);
+  font-family: var(--display);
   font-size: 1.12rem;
 }
 
@@ -939,12 +1055,13 @@ main {
 
 .badge-prioridade {
   margin-left: auto;
-  padding: 0.2rem 0.7rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.68rem;
-  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   border: 1px solid transparent;
 }
 
@@ -983,27 +1100,42 @@ main {
 }
 
 .promo-preco strong {
-  font-family: var(--heading);
-  font-size: 1.3rem;
-  color: var(--clay-700);
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--ink-900);
 }
 
-/* Citacao da justificativa escrita pela IA -- barra lateral em tom de
-   barro reforca que e "fala" do modelo, nao texto do sistema. */
+/* Justificativa escrita pelo modelo: a barra de acento a esquerda marca
+   que o texto e "fala" da IA, nao mensagem do sistema. */
 .promo-justificativa {
-  font-style: italic;
   color: var(--text);
   margin: 0.7rem 0;
-  padding-left: 0.85rem;
-  border-left: 3px solid var(--clay-300);
-  line-height: 1.5;
+  padding: 0.15rem 0 0.15rem 0.85rem;
+  border-left: 2px solid var(--accent-400);
+  line-height: 1.55;
 }
 
 .promo-modelo {
   color: var(--text-soft);
-  font-size: 0.73rem;
+  font-size: 0.7rem;
   margin: 0 0 0.85rem;
   font-family: var(--mono);
+}
+
+/* Recusa do guard-rail de preco: fica dentro do card da sugestao (e nao
+   no topo da pagina) pra o funcionario ver qual sugestao foi barrada e
+   por que. O card permanece na lista pra ele poder corrigir e tentar de
+   novo, ou rejeitar. */
+.promo-erro {
+  margin: 0.85rem 0 0;
+  padding: 0.7rem 0.9rem;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 0.87rem;
+  line-height: 1.5;
 }
 
 .promo-observacao {
@@ -1092,4 +1224,422 @@ main {
   .form {
     max-width: none;
   }
+}
+
+/* --- Caixa (conferencia de pedido) --------------------------------------- */
+
+.caixa-busca {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin: 1.25rem 0;
+}
+
+/* Campo grande e tabular: o operador digita olhando pro cliente, nao pra
+   tela, entao o numero precisa ser conferivel de relance. */
+.caixa-numero-input {
+  font-family: var(--mono);
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  font-variant-numeric: tabular-nums;
+  width: 8.5ch;
+  padding: 0.5rem 0.7rem;
+  text-align: center;
+  color: var(--ink-800);
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.caixa-numero-input:focus {
+  outline: none;
+  border-color: var(--accent-600);
+  box-shadow: var(--ring);
+}
+
+.caixa-busca button[type="submit"] {
+  padding: 0.7rem 1.25rem;
+  font-size: 1rem;
+}
+
+.caixa-pedido {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.caixa-pedido-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.caixa-pedido-header .checkout-numero {
+  margin: 0;
+  padding: 0.6rem 1.1rem;
+  font-size: 1.9rem;
+}
+
+.badge-status {
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+
+.badge-status-gerado {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+
+.badge-status-conferido_no_caixa {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.badge-status-expirado {
+  background: var(--surface-muted);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.caixa-detalhe {
+  color: var(--text-soft);
+  font-size: 0.87rem;
+  margin: 0.6rem 0;
+}
+
+.caixa-aviso-expirado {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.caixa-total {
+  font-family: var(--mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--ink-800);
+  margin: 0.9rem 0 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.caixa-confirmar-btn {
+  width: 100%;
+  padding: 0.95rem 1.25rem;
+  font-size: 1.05rem;
+}
+
+.caixa-confirmado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-lg);
+  color: var(--success);
+}
+
+.caixa-confirmado strong {
+  font-size: 1.15rem;
+}
+
+.caixa-proximo {
+  color: var(--text-soft);
+  font-size: 0.87rem;
+}
+
+/* --- Indicadores --------------------------------------------------------- */
+
+/* Aviso de dado simulado: precisa ser impossivel de ignorar, e a primeira
+   coisa que a banca vai perguntar sobre os numeros desta tela. */
+.aviso-simulado {
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--warning);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.aviso-simulado code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 0.9rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi-rotulo {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.kpi-valor {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--ink-800);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.kpi-apoio {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.indicadores-nota {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0.5rem 0 1.5rem;
+  max-width: 72ch;
+}
+
+/* --- Graficos (SVG inline) ------------------------------------------------ */
+
+.grafico {
+  margin: 0 0 1.75rem;
+}
+
+.grafico-titulo {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}
+
+/* Barras com muitos grupos passam da largura da pagina: rolam dentro do
+   proprio container em vez de esticar o body. */
+.grafico-scroll {
+  overflow-x: auto;
+  padding: 0.85rem 0.5rem 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.grafico-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grafico-grade {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.grafico-linha {
+  fill: none;
+  stroke: var(--accent-600);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.grafico-area {
+  fill: var(--accent-100);
+  opacity: 0.55;
+  stroke: none;
+}
+
+.grafico-ponto {
+  fill: var(--accent-600);
+}
+
+.grafico-barra-antes {
+  fill: var(--ink-300);
+}
+
+.grafico-barra-depois {
+  fill: var(--accent-600);
+}
+
+.grafico-rotulo {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--text-soft);
+}
+
+.grafico-rotulo-y {
+  text-anchor: end;
+}
+
+.grafico-rotulo-x {
+  text-anchor: middle;
+}
+
+.grafico-legenda {
+  display: flex;
+  gap: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.grafico-chip {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 1px;
+  margin-right: 0.3rem;
+}
+
+.grafico-chip-antes {
+  background: var(--ink-300);
+}
+
+.grafico-chip-depois {
+  background: var(--accent-600);
+}
+
+.grafico-vazio {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-soft);
+  background: var(--surface-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+
+.badge-em-andamento {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--accent-50);
+  border: 1px solid var(--accent-200);
+  color: var(--accent-700);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.variacao-positiva {
+  color: var(--success);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.variacao-negativa {
+  color: var(--danger);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.celula-mono {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+/* --- Login --------------------------------------------------------------- */
+
+.page-login {
+  max-width: 380px;
+  margin: clamp(1rem, 8vh, 5rem) auto 0;
+}
+
+.login-marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-marca svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--accent-600);
+}
+
+.login-marca span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-900);
+}
+
+.login-marca span em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-soft);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.4rem, 4vw, 2rem);
+  box-shadow: var(--shadow-md);
+}
+
+.login-card h1 {
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.login-sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-card .form {
+  max-width: none;
+  gap: 1rem;
+}
+
+.login-card .form button:not(.link-button) {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
 }

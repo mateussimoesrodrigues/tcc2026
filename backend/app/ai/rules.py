@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.movimentacao_estoque import MovimentacaoEstoque, TipoMovimentacao
 from app.models.produto import Produto
+from app.services import price_service
 
 JANELA_DIAS_PADRAO = 90
 DIAS_ESTOQUE_PARADO_PADRAO = 30
@@ -59,6 +60,12 @@ class SinaisProduto:
     margem: float | None  # None = custo nao informado
     proxima_data_sazonal: str
     dias_ate_data_sazonal: int
+    # Teto de desconto que o piso de custo permite neste produto (ver
+    # price_service.desconto_maximo_permitido). Fica no fim, com default,
+    # pra nao quebrar construcoes posicionais existentes. Se e informado ao
+    # LLM no prompt e decidido por `Settings.informar_piso_no_prompt` --
+    # justamente pra dar pra medir o efeito disso (scripts/avaliar_llm.py).
+    desconto_maximo_permitido: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -124,6 +131,7 @@ def calcular_sinais(
         margem=round(margem, 4) if margem is not None else None,
         proxima_data_sazonal=proxima_data,
         dias_ate_data_sazonal=dias_ate_data,
+        desconto_maximo_permitido=float(price_service.desconto_maximo_permitido(produto)),
     )
 
 

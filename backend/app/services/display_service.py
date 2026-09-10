@@ -12,6 +12,7 @@ previamente nem de login de funcionario no device.
 """
 import secrets
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -77,29 +78,38 @@ def regenerar_token(db: Session, display_id: int) -> Display:
     return obter_display(db, display_id)
 
 
-def sincronizar(db: Session, display: Display, dados: DisplaySincronizarRequest) -> dict:
-    """Registra a telemetria reportada (se houver) e devolve o estado atual
-    do produto vinculado, pronto pra virar payload de `DisplayEstadoResponse`.
-    Nao mexe em produto/preco -- e so leitura do lado do produto."""
-    display.ultima_sincronizacao_em = datetime.now(UTC).replace(tzinfo=None)
-    if dados.mac is not None:
-        display.mac_reportado = dados.mac
-    if dados.bateria_pct is not None:
-        display.bateria_pct = dados.bateria_pct
-    if dados.rssi_dbm is not None:
-        display.rssi_dbm = dados.rssi_dbm
-    db.commit()
+def montar_estado(display: Display) -> dict:
+    """Estado do display pronto pra desenhar -- **fonte unica do payload**.
 
+    E usado nos dois caminhos: na resposta de `POST /displays/sincronizar`
+    (HTTP, que a variante e-paper usa em polling e a variante OLED usa uma
+    vez no boot) e no push MQTT (`services/mqtt_publisher.py`). Manter um
+    construtor so significa que o firmware tem **um unico parser**,
+    independente de por onde a mensagem chegou.
+
+    So le -- nao mexe em produto/preco nem commita.
+    """
     produto: Produto | None = display.produto
     proximo_sync = get_settings().display_sync_intervalo_segundos
+    agora = datetime.now(UTC).replace(tzinfo=None)
 
     if produto is None:
         return {
             "display_id": display.id,
             "display_nome": display.nome,
             "tem_produto": False,
+            "gerado_em": agora,
             "proximo_sync_em_segundos": proximo_sync,
         }
+
+    # Percentual vai calculado aqui, e nao no firmware: microcontrolador
+    # nao tem aritmetica decimal confiavel e o selo "-XX%" tem que bater
+    # exatamente com o que o painel mostra.
+    percentual = None
+    if produto.promocao_ativa and produto.preco_normal > 0:
+        percentual = (
+            (produto.preco_normal - produto.preco_vigente) / produto.preco_normal * 100
+        ).quantize(Decimal("0.01"))
 
     return {
         "display_id": display.id,
@@ -113,6 +123,34 @@ def sincronizar(db: Session, display: Display, dados: DisplaySincronizarRequest)
         "preco_promocional": produto.preco_promocional,
         "promocao_ativa": produto.promocao_ativa,
         "preco_vigente": produto.preco_vigente,
+        "percentual_desconto": percentual,
         "produto_atualizado_em": produto.atualizado_em,
+        "gerado_em": agora,
         "proximo_sync_em_segundos": proximo_sync,
     }
+
+
+def sincronizar(db: Session, display: Display, dados: DisplaySincronizarRequest) -> dict:
+    """Registra a telemetria reportada (se houver) e devolve o estado atual
+    do produto vinculado (ver `montar_estado`)."""
+    display.ultima_sincronizacao_em = datetime.now(UTC).replace(tzinfo=None)
+    if dados.mac is not None:
+        display.mac_reportado = dados.mac
+    if dados.bateria_pct is not None:
+        display.bateria_pct = dados.bateria_pct
+    if dados.rssi_dbm is not None:
+        display.rssi_dbm = dados.rssi_dbm
+    db.commit()
+
+    return montar_estado(display)
+
+
+def displays_ativos_do_produto(db: Session, produto_id: int) -> list[Display]:
+    """Displays ligados a este produto que devem receber push de preco.
+    Display desativado nao recebe -- o token dele ja nao vale mais."""
+    stmt = (
+        select(Display)
+        .options(*_DISPLAY_OPTIONS)
+        .where(Display.produto_id == produto_id, Display.ativo.is_(True))
+    )
+    return list(db.execute(stmt).unique().scalars())

@@ -1,0 +1,2 @@
+provedor,modelo,execucoes,sucessos,taxa_sucesso_pct,taxa_invalida_pct,erros_por_classe,desconto_medio,coef_variacao_medio,respeitam_piso_pct,erro_medio_vs_baseline_pp,spearman_vs_baseline,mais_agressivo_que_baseline_pct,latencia_media_ms,latencia_p50_ms,latencia_p95_ms
+groq,groq/openai/gpt-oss-120b,9,9,100.0,0.0,{},33.89,0.0906,100.0,12.22,-0.7,100.0,1452.3,1249.3,2381.5

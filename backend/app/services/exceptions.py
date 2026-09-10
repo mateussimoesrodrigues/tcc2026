@@ -69,5 +69,64 @@ class SugestaoJaAvaliadaError(Exception):
     """Sugestao ja aprovada/rejeitada/expirada -- nao pode ser avaliada de novo."""
 
 
+class PrecoPromocionalInvalidoError(Exception):
+    """Base das recusas de preco promocional (ver
+    `price_service.validar_preco_promocional`).
+
+    `codigo` e estavel e vai pro JSON da API -- o frontend usa ele pra
+    escolher a mensagem, em vez de casar string traduzida. `detalhes` traz
+    os numeros que embasaram a decisao (custo, piso, margem), pra tela
+    conseguir explicar ao funcionario *por que* o preco foi recusado.
+    """
+
+    codigo = "preco_invalido"
+
+    def __init__(self, mensagem: str, **detalhes):
+        self.detalhes = detalhes
+        super().__init__(mensagem)
+
+
+class PrecoNaoPositivoError(PrecoPromocionalInvalidoError):
+    codigo = "preco_nao_positivo"
+
+
+class PrecoNaoInferiorAoNormalError(PrecoPromocionalInvalidoError):
+    """"Promocao" que nao baixa o preco -- provavelmente erro de digitacao
+    ou resposta ruim do LLM."""
+
+    codigo = "nao_e_desconto"
+
+
+class DescontoAcimaDoLimiteError(PrecoPromocionalInvalidoError):
+    codigo = "desconto_excessivo"
+
+
+class PrecoAbaixoDoPisoError(PrecoPromocionalInvalidoError):
+    """Preco abaixo de custo + margem minima -- a loja venderia no prejuizo
+    (ou abaixo da margem que ela definiu como aceitavel)."""
+
+    codigo = "abaixo_do_piso"
+
+
+class PromocaoJaAtivaError(PrecoPromocionalInvalidoError):
+    """Produto ja esta em promocao. Aplicar por cima sobrescreveria a
+    promocao vigente silenciosamente, entao exige intencao explicita."""
+
+    codigo = "promocao_ja_ativa"
+
+
+class PedidoNaoEncontradoError(Exception):
+    pass
+
+
+class PedidoJaConferidoError(Exception):
+    """Pedido ja passou pela conferencia no caixa -- evita baixa dupla."""
+
+    def __init__(self, conferido_em, conferido_por_nome: str | None = None):
+        self.conferido_em = conferido_em
+        self.conferido_por_nome = conferido_por_nome
+        super().__init__(f"Pedido ja conferido em {conferido_em}")
+
+
 class DisplayNaoEncontradoError(Exception):
     pass

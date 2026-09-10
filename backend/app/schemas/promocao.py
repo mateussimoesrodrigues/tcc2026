@@ -68,6 +68,22 @@ class FalhaGeracao(BaseModel):
     produto_id: int
     nome: str
     motivo: str
+    # "llm" = o provedor nao respondeu ou respondeu fora do formato.
+    # "guard_rail" = o LLM respondeu, mas o preco feria o piso de custo /
+    # teto de desconto e foi barrado antes de chegar ao funcionario.
+    # Default preserva compatibilidade com respostas antigas.
+    categoria: str = "llm"
+
+
+class ErroPrecoRead(BaseModel):
+    """Corpo dos 422/409 de preco promocional. `codigo` e estavel (ver
+    `services/exceptions.PrecoPromocionalInvalidoError`) -- a UI decide a
+    mensagem por ele, e `detalhes` traz os numeros pra explicar ao
+    funcionario o porque da recusa."""
+
+    codigo: str
+    mensagem: str
+    detalhes: dict
 
 
 class GerarSugestoesResposta(BaseModel):

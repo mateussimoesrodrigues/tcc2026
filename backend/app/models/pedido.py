@@ -44,6 +44,14 @@ class Pedido(Base):
         DateTime, default=_expira_em_padrao, nullable=False
     )
 
+    # Auditoria da conferencia no caixa (ver services/order_service.py). Sao
+    # o unico registro de que a venda de fato se concretizou -- o checkout
+    # sozinho so significa "cliente montou o carrinho e foi pro caixa".
+    conferido_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    conferido_por: Mapped[int | None] = mapped_column(
+        ForeignKey("funcionario.id"), nullable=True
+    )
+
     itens: Mapped[list["PedidoItem"]] = relationship(
         back_populates="pedido", cascade="all, delete-orphan"
     )

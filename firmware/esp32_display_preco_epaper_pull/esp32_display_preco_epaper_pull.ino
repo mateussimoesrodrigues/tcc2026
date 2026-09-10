@@ -1,5 +1,21 @@
 /*
- * Etiqueta eletronica de prateleira -- firmware de referencia (ESP32).
+ * Etiqueta eletronica de prateleira -- VARIANTE DE PRODUCAO (ESP32).
+ *
+ *   Modelo: e-paper + POLLING (pull) + DEEP SLEEP + bateria.
+ *
+ * Esta e a arquitetura descrita na monografia como a de producao, e a
+ * mesma das etiquetas eletronicas comerciais (ESL): o dispositivo passa a
+ * maior parte do tempo dormindo, acorda por timer, pergunta "mudou
+ * alguma coisa?", redesenha so se mudou e volta a dormir. Isso e o que da
+ * meses de autonomia com uma bateria e imagem persistente na tela (e-paper
+ * nao consome nada pra manter o que ja esta desenhado).
+ *
+ * Existe uma SEGUNDA variante ao lado desta, em
+ * `firmware/esp32_display_preco_oled_mqtt/`: OLED + MQTT push +
+ * alimentacao fixa, feita pra DEMONSTRACAO (atualiza instantaneamente
+ * quando a promocao e aprovada, mas nao dorme e nao tem autonomia). As
+ * duas convivem de proposito -- ver a comparacao em
+ * `docs/displays-fisicos.md`. Nenhuma substitui a outra.
  *
  * O que este sketch ja faz (nao depende de qual display fisico voce
  * escolher):

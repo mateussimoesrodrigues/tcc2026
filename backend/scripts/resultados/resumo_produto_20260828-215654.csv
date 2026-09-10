@@ -1,0 +1,4 @@
+produto_id,produto_nome,provedor,execucoes,sucessos,desconto_medio,desconto_desvio,coef_variacao,desconto_min,desconto_max,amplitude,prioridades_distintas,desconto_baseline,latencia_media_ms
+2,Cola Pano,groq,3,3,31.67,2.36,0.0744,30.0,35.0,5.0,1,25.0,1306.9
+6,Cola Permanente,groq,3,3,31.67,2.36,0.0744,30.0,35.0,5.0,1,25.0,1661.8
+25,Tinta PVA,groq,3,3,38.33,4.71,0.123,35.0,45.0,10.0,1,15.0,1388.3

@@ -32,34 +32,47 @@ export default function Login() {
   }
 
   return (
-    <div className="page">
-      <h1>Login do funcionário</h1>
-      <form onSubmit={handleSubmit} className="form">
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
-            required
-          />
-        </label>
-        <label>
-          Senha
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        {erro && <p className="erro">{erro}</p>}
-        <button type="submit" disabled={enviando}>
-          {enviando ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+    <div className="page page-login">
+      <div className="login-marca">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="1.5" y="13" width="5" height="8" rx="1" opacity="0.55" />
+          <rect x="9.5" y="8" width="5" height="13" rx="1" opacity="0.8" />
+          <rect x="17.5" y="3" width="5" height="18" rx="1" />
+        </svg>
+        <span>
+          Precificação <em>Inteligente</em>
+        </span>
+      </div>
+      <div className="login-card">
+        <h1>Login do funcionário</h1>
+        <p className="login-sub">Acesso restrito à equipe da loja.</p>
+        <form onSubmit={handleSubmit} className="form">
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label>
+            Senha
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          {erro && <p className="erro">{erro}</p>}
+          <button type="submit" disabled={enviando}>
+            {enviando ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,4 @@
+# O cache de respostas pode conter texto bruto do provedor e cresce sem
+# limite -- e conveniencia local (evita gastar quota ao reanalisar), nao
+# evidencia. Os CSVs e metadados, sim, vao versionados.
+cache.jsonl
