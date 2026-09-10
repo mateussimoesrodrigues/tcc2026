@@ -92,6 +92,39 @@ class ProdutoParadoRead(BaseModel):
     tem_sugestao_pendente: bool
 
 
+class SugestaoReposicaoItemRead(BaseModel):
+    """Espelho de `ProdutoParadoRead`: la e capital parado, aqui e venda que
+    vai deixar de acontecer."""
+
+    produto_id: int
+    nome: str
+    marca: str | None
+    tamanho: str | None
+    estoque: int
+    unidades_vendidas_janela: int
+    giro_diario: float
+    dias_de_estoque_restante: float
+    # "risco" = ainda tem estoque mas acaba dentro da janela de alerta;
+    # "ruptura" = ja zerou e vendeu no periodo.
+    situacao: str
+    quantidade_sugerida: int
+    custo: Decimal | None
+    custo_estimado_compra: Decimal
+    # True = `custo_estimado_compra` usa metade do preco como proxy do custo.
+    custo_estimado: bool
+    # Em promocao o giro esta acima do normal: os dias restantes ficam
+    # subestimados e a quantidade sugerida, inflada.
+    promocao_ativa: bool
+
+
+class SugestaoReposicaoRead(BaseModel):
+    dias_alerta: int
+    dias_cobertura: int
+    itens: list[SugestaoReposicaoItemRead]
+    custo_total_estimado: Decimal
+    produtos_sem_custo: int
+
+
 class ResumoAnalyticsRead(BaseModel):
     gerado_em: datetime
     janela_dias: int

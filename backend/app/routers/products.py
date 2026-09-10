@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_funcionario
 from app.models.categoria import Categoria
+from app.models.funcionario import Funcionario
 from app.schemas.categoria import CategoriaCreate, CategoriaRead
 from app.schemas.produto import (
     CodigoLookupResult,
@@ -17,6 +18,7 @@ from app.services import product_service
 from app.services.exceptions import (
     CodigoJaCadastradoError,
     PrecoNaoInformadoError,
+    PrecoPromocionalInvalidoError,
     ProdutoNaoEncontradoError,
 )
 
@@ -89,11 +91,26 @@ def criar_produto(dados: ProdutoCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/produtos/{produto_id}", response_model=ProdutoRead)
-def atualizar_produto(produto_id: int, dados: ProdutoUpdate, db: Session = Depends(get_db)):
+def atualizar_produto(
+    produto_id: int,
+    dados: ProdutoUpdate,
+    db: Session = Depends(get_db),
+    funcionario: Funcionario = Depends(get_current_funcionario),
+):
+    """Mudanca de `preco_normal` passa por `price_service` e fica gravada em
+    `historico_preco` com o autor -- por isso o funcionario e injetado aqui.
+    """
     try:
-        return product_service.atualizar_produto(db, produto_id, dados)
+        return product_service.atualizar_produto(
+            db, produto_id, dados, alterado_por=funcionario.id
+        )
     except ProdutoNaoEncontradoError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto nao encontrado")
+    except PrecoPromocionalInvalidoError as e:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {"codigo": e.codigo, "mensagem": str(e), "detalhes": e.detalhes},
+        )
 
 
 @router.delete("/produtos/{produto_id}", response_model=ProdutoRead)

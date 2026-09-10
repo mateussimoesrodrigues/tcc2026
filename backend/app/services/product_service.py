@@ -11,9 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.estoque import Estoque
+from app.models.movimentacao_estoque import MovimentacaoEstoque, TipoMovimentacao
 from app.models.produto import Produto
 from app.models.produto_codigo import ProdutoCodigo
 from app.schemas.produto import ProdutoCreate, ProdutoUpdate
+from app.services import price_service
 from app.services.exceptions import (
     CodigoJaCadastradoError,
     PrecoNaoInformadoError,
@@ -107,14 +109,48 @@ def criar_produto(db: Session, dados: ProdutoCreate) -> Produto:
     )
     db.add(Estoque(produto_id=produto.id, quantidade=dados.quantidade_inicial))
 
+    # O saldo inicial tambem entra no razao. Sem isso a soma das
+    # movimentacoes nao fecha com `estoque.quantidade` para produto novo, e
+    # o historico do produto comeca com um buraco do tamanho da primeira
+    # compra.
+    if dados.quantidade_inicial > 0:
+        db.add(
+            MovimentacaoEstoque(
+                produto_id=produto.id,
+                tipo=TipoMovimentacao.ENTRADA,
+                quantidade=dados.quantidade_inicial,
+                custo_unitario=dados.custo,
+                observacao="Saldo inicial do cadastro",
+            )
+        )
+
     db.commit()
     return obter_produto(db, produto.id)
 
 
-def atualizar_produto(db: Session, produto_id: int, dados: ProdutoUpdate) -> Produto:
+def atualizar_produto(
+    db: Session, produto_id: int, dados: ProdutoUpdate, *, alterado_por: int | None = None
+) -> Produto:
+    """`preco_normal` sai do laco de `setattr` e vai por
+    `price_service.alterar_preco_normal`, que grava o historico -- e o mesmo
+    caminho usado pela tela de reprecificacao. Os demais campos continuam
+    sendo atribuidos direto; nenhum deles tem trilha de auditoria.
+
+    Tudo numa transacao so: se a mudanca de preco for recusada (produto em
+    promocao ativa), o nome e a categoria tambem nao mudam.
+    """
     produto = obter_produto(db, produto_id)
-    for campo, valor in dados.model_dump(exclude_unset=True).items():
+    campos = dados.model_dump(exclude_unset=True)
+    preco_normal = campos.pop("preco_normal", None)
+
+    for campo, valor in campos.items():
         setattr(produto, campo, valor)
+
+    if preco_normal is not None:
+        price_service.alterar_preco_normal(
+            db, produto_id, preco_normal, alterado_por=alterado_por, commit=False
+        )
+
     db.commit()
     return obter_produto(db, produto_id)
 

@@ -12,6 +12,7 @@ from app.routers import (
     displays,
     orders,
     price_history,
+    pricing,
     products,
     promotions,
     public_catalog,
@@ -75,5 +76,6 @@ app.include_router(checkout.router)
 app.include_router(orders.router)
 app.include_router(promotions.router)
 app.include_router(price_history.router)
+app.include_router(pricing.router)
 app.include_router(analytics.router)
 app.include_router(displays.router)

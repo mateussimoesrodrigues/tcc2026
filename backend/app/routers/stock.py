@@ -4,7 +4,14 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_funcionario
 from app.models.funcionario import Funcionario
-from app.schemas.estoque import AjusteEstoqueCreate, EstoqueItemRead, MovimentacaoEstoqueRead
+from app.schemas.estoque import (
+    AjusteEstoqueCreate,
+    EntradaCreate,
+    EntradaRecenteRead,
+    EntradaResultado,
+    EstoqueItemRead,
+    MovimentacaoEstoqueRead,
+)
 from app.services import stock_service
 from app.services.exceptions import ProdutoNaoEncontradoError
 
@@ -14,6 +21,28 @@ router = APIRouter(prefix="/estoque", tags=["estoque"], dependencies=[Depends(ge
 @router.get("", response_model=list[EstoqueItemRead])
 def listar_estoque(somente_baixo: bool = False, db: Session = Depends(get_db)):
     return stock_service.listar_estoque(db, somente_baixo=somente_baixo)
+
+
+# As rotas de /entradas vem antes das de /{produto_id} de proposito: o
+# FastAPI casa na ordem de declaracao, e uma rota futura de um segmento so
+# (ex.: GET /estoque/{produto_id}) engoliria "entradas" como se fosse um id.
+@router.post("/entradas", response_model=EntradaResultado, status_code=status.HTTP_201_CREATED)
+def registrar_entrada(
+    dados: EntradaCreate,
+    db: Session = Depends(get_db),
+    funcionario: Funcionario = Depends(get_current_funcionario),
+):
+    """Recebimento de mercadoria: soma no estoque, registra o custo pago e
+    reancora o custo do produto pela media ponderada. Tudo ou nada."""
+    try:
+        return stock_service.registrar_entrada(db, dados, funcionario_id=funcionario.id)
+    except ProdutoNaoEncontradoError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Produto {e} nao encontrado")
+
+
+@router.get("/entradas", response_model=list[EntradaRecenteRead])
+def listar_entradas(limite: int = 100, db: Session = Depends(get_db)):
+    return stock_service.listar_entradas(db, limite=limite)
 
 
 @router.post("/{produto_id}/ajuste", response_model=EstoqueItemRead)

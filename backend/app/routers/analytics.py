@@ -13,6 +13,7 @@ from app.schemas.analytics import (
     ProdutoParadoRead,
     PromocaoEfeitoRead,
     ResumoAnalyticsRead,
+    SugestaoReposicaoRead,
 )
 from app.services import analytics_service
 
@@ -57,6 +58,26 @@ def parados(
     db: Session = Depends(get_db),
 ):
     return [ProdutoParadoRead(**p) for p in analytics_service.produtos_parados(db, dias=dias, limite=limite)]
+
+
+@router.get("/reposicao", response_model=SugestaoReposicaoRead)
+def reposicao(
+    dias_alerta: int = analytics_service.DIAS_ALERTA_REPOSICAO_PADRAO,
+    dias_cobertura: int = analytics_service.DIAS_COBERTURA_PADRAO,
+    limite: int = analytics_service.LIMITE_REPOSICAO_PADRAO,
+    db: Session = Depends(get_db),
+):
+    """O que vai faltar: produtos que acabam dentro de `dias_alerta` no
+    ritmo atual, mais os que ja romperam. Espelho de `produtos-parados`.
+
+    Fora do `/resumo` de proposito: aquele endpoint monta a tela de
+    indicadores inteira numa chamada e ja carrega tres agregacoes; esta
+    varre o catalogo e nao e renderizada la."""
+    return SugestaoReposicaoRead(
+        **analytics_service.sugerir_reposicao(
+            db, dias_alerta=dias_alerta, dias_cobertura=dias_cobertura, limite=limite
+        )
+    )
 
 
 @router.get("/resumo", response_model=ResumoAnalyticsRead)

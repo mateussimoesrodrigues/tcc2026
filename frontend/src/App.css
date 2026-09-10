@@ -177,6 +177,8 @@ main {
 .carrinho-item-qtd button,
 .caixa-busca button[type="submit"],
 .caixa-confirmar-btn,
+.entrada-form button[type="submit"],
+.estoque-ajuste-form button[type="submit"],
 .scanner-ir-carrinho {
   font-family: inherit;
   font-weight: 600;
@@ -193,6 +195,8 @@ main {
 .form-acoes button[type="submit"],
 .scanner-manual-form button,
 .caixa-busca button[type="submit"],
+.entrada-form button[type="submit"],
+.estoque-ajuste-form button[type="submit"],
 .caixa-confirmar-btn {
   background: var(--ink-900);
   color: var(--text-inverse);
@@ -209,6 +213,8 @@ main {
 .form-acoes button[type="submit"]:hover:not(:disabled),
 .scanner-manual-form button:hover:not(:disabled),
 .caixa-busca button[type="submit"]:hover:not(:disabled),
+.entrada-form button[type="submit"]:hover:not(:disabled),
+.estoque-ajuste-form button[type="submit"]:hover:not(:disabled),
 .caixa-confirmar-btn:hover:not(:disabled) {
   background: var(--ink-800);
   border-color: var(--ink-800);
@@ -237,6 +243,8 @@ main {
 .form-acoes button[type="submit"]:disabled,
 .scanner-manual-form button:disabled,
 .caixa-busca button[type="submit"]:disabled,
+.entrada-form button[type="submit"]:disabled,
+.estoque-ajuste-form button[type="submit"]:disabled,
 .caixa-confirmar-btn:disabled {
   background: var(--border-strong);
   border-color: var(--border-strong);
@@ -1642,4 +1650,235 @@ main {
 .login-card .form button:not(.link-button) {
   margin-top: 0.5rem;
   padding: 0.75rem 1rem;
+}
+
+/* --- Entrada de mercadoria ------------------------------------------------ */
+
+.entrada-acoes {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.entrada-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  max-width: 780px;
+}
+
+.entrada-form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  width: 100%;
+  max-width: 420px;
+}
+
+.entrada-form input,
+.entrada-form select {
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.entrada-form input:focus,
+.entrada-form select:focus {
+  outline: none;
+  border-color: var(--accent-500);
+  box-shadow: var(--ring);
+}
+
+.entrada-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+/* Uma linha da nota: produto | qtd | custo | subtotal | remover, com o
+   contexto do produto ocupando a linha inteira embaixo. */
+.entrada-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem 7rem auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.entrada-item-subtotal {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ink-900);
+}
+
+.entrada-item-contexto {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+
+.entrada-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2rem;
+  width: 100%;
+  max-width: 420px;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.entrada-total span {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.entrada-total strong {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Ajuste de estoque na tabela ------------------------------------------ */
+
+.estoque-ajuste-linha td {
+  background: var(--surface-muted);
+  box-shadow: inset 2px 0 0 var(--accent-500);
+}
+
+.estoque-ajuste-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.estoque-ajuste-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.estoque-ajuste-form input {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.estoque-ajuste-form input:focus {
+  outline: none;
+  border-color: var(--accent-500);
+  box-shadow: var(--ring);
+}
+
+.estoque-ajuste-form input[type="number"] {
+  width: 7rem;
+  font-family: var(--mono);
+}
+
+/* O motivo é texto livre com sugestões: precisa caber "Erro de contagem"
+   sem truncar o placeholder. */
+.estoque-ajuste-form input[type="text"] {
+  width: 16rem;
+  max-width: 100%;
+}
+
+.estoque-ajuste-form button[type="submit"] {
+  padding: 0.5rem 1rem;
+  font-size: 0.92rem;
+}
+
+.estoque-ajuste-form .erro {
+  flex-basis: 100%;
+}
+
+/* --- Margens e precificacao ----------------------------------------------- */
+
+.margem-alvo-controle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.margem-alvo-controle label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.margem-alvo-controle input {
+  width: 5rem;
+  padding: 0.45rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.margem-alvo-controle input:focus {
+  outline: none;
+  border-color: var(--accent-500);
+  box-shadow: var(--ring);
+}
+
+.preco-sugerido {
+  font-weight: 600;
+  color: var(--accent-700);
+}
+
+@media (max-width: 720px) {
+  .entrada-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .entrada-item select {
+    grid-column: 1 / -1;
+  }
 }

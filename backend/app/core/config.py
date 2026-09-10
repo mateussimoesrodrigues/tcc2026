@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     # Teto de desconto, aplicado tanto na validacao da resposta do LLM
     # quanto na aplicacao do preco.
     desconto_maximo_percentual: float = 70.0
+    # Margem comercial desejada no catalogo, medida SOBRE O PRECO -- mesma
+    # base de `ai/rules.SinaisProduto.margem`, que e o numero que as telas
+    # exibem. Alimenta o alerta de margem defasada e o preco sugerido.
+    #
+    # Atencao a diferenca de base, que e a pegadinha deste dominio:
+    # `margem_minima_percentual` acima e um markup SOBRE O CUSTO
+    # (custo * 1,10) e funciona como piso intransponivel; esta e uma meta
+    # comercial sobre o preco (preco = custo / (1 - alvo)). Bases
+    # diferentes, papeis diferentes.
+    margem_alvo_percentual: float = 35.0
     # Produto sem `custo` cadastrado nao tem piso calculavel. True = deixa a
     # promocao passar mesmo assim (realidade da loja: nem todo custo esta
     # lancado). False = recusa, postura mais conservadora.

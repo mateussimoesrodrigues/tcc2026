@@ -9,6 +9,8 @@ import DashboardEstoque from "./funcionario/pages/DashboardEstoque";
 import Indicadores from "./funcionario/pages/Indicadores";
 import Promocoes from "./funcionario/pages/Promocoes";
 import Produtos from "./funcionario/pages/Produtos";
+import Entradas from "./funcionario/pages/Entradas";
+import Precificacao from "./funcionario/pages/Precificacao";
 import Displays from "./funcionario/pages/Displays";
 import HistoricoPrecos from "./funcionario/pages/HistoricoPrecos";
 import ProtectedRoute from "./funcionario/components/ProtectedRoute";
@@ -68,6 +70,8 @@ function FuncionarioNav() {
       <NavLink to="/funcionario/caixa">Caixa</NavLink>
       <NavLink to="/funcionario" end>Estoque</NavLink>
       <NavLink to="/funcionario/produtos">Produtos</NavLink>
+      <NavLink to="/funcionario/entradas">Entradas</NavLink>
+      <NavLink to="/funcionario/precificacao">Margens</NavLink>
       <NavLink to="/funcionario/promocoes">Promoções</NavLink>
       <NavLink to="/funcionario/indicadores">Indicadores</NavLink>
       <NavLink to="/funcionario/historico-precos">Histórico</NavLink>
@@ -115,6 +119,22 @@ function FuncionarioLayout() {
               element={
                 <ProtectedRoute>
                   <Produtos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="entradas"
+              element={
+                <ProtectedRoute>
+                  <Entradas />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="precificacao"
+              element={
+                <ProtectedRoute>
+                  <Precificacao />
                 </ProtectedRoute>
               }
             />

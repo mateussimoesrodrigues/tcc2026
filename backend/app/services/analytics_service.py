@@ -28,6 +28,7 @@ mordem aqui e estao encapsuladas em `_bucket_periodo` e no `type_` do
 """
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from math import ceil
 from statistics import median
 
 from sqlalchemy import DateTime, Numeric, case, func, select
@@ -495,6 +496,135 @@ def produtos_parados(
             }
         )
     return resultado
+
+
+DIAS_ALERTA_REPOSICAO_PADRAO = 15
+DIAS_COBERTURA_PADRAO = 30
+LIMITE_REPOSICAO_PADRAO = 50
+
+
+def sugerir_reposicao(
+    db: Session,
+    *,
+    dias_alerta: int = DIAS_ALERTA_REPOSICAO_PADRAO,
+    dias_cobertura: int = DIAS_COBERTURA_PADRAO,
+    limite: int = LIMITE_REPOSICAO_PADRAO,
+) -> dict:
+    """Espelho de `produtos_parados`: quem vai **faltar**, nao quem sobra.
+
+    Mesma formula de giro de `ai.rules.calcular_sinais`
+    (`unidades_vendidas / janela_dias`, e `estoque / giro` para os dias
+    restantes) -- mas numa consulta agregada so, e nao duas por produto como
+    la. `calcular_sinais` avalia um produto por vez a pedido do LLM; aqui a
+    varredura e do catalogo inteiro, e o N+1 apareceria na latencia da tela.
+    `test_analytics` fixa a paridade entre os dois numeros.
+
+    Tres situacoes entram:
+    - `risco`: ainda tem estoque, mas acaba dentro de `dias_alerta`.
+    - `ruptura`: estoque zerado e vendeu na janela. Este e o caso que
+      escapava de tudo: `produtos_parados` exige `quantidade > 0`, e o
+      produto sem estoque para de vender e vai zerando o giro -- sumia das
+      duas listas justamente quando estava custando venda.
+
+    Fica de fora quem tem giro zero e ainda tem estoque: sem ritmo nao ha
+    data de ruptura, e esse produto e assunto de `produtos_parados`.
+    """
+    agora = _agora()
+    inicio_janela = agora - timedelta(days=JANELA_PADRAO_DIAS)
+
+    vendidos = (
+        select(
+            MovimentacaoEstoque.produto_id,
+            func.sum(MovimentacaoEstoque.quantidade).label("unidades"),
+        )
+        .where(
+            MovimentacaoEstoque.tipo == TipoMovimentacao.SAIDA_VENDA,
+            MovimentacaoEstoque.criado_em >= inicio_janela,
+        )
+        .group_by(MovimentacaoEstoque.produto_id)
+        .subquery()
+    )
+
+    linhas = db.execute(
+        select(
+            Produto.id,
+            Produto.nome,
+            Produto.marca,
+            Produto.tamanho,
+            Produto.preco_normal,
+            Produto.custo,
+            Produto.promocao_ativa,
+            Estoque.quantidade,
+            func.coalesce(vendidos.c.unidades, 0).label("unidades_janela"),
+        )
+        .join(Estoque, Estoque.produto_id == Produto.id)
+        .outerjoin(vendidos, vendidos.c.produto_id == Produto.id)
+        .where(Produto.ativo.is_(True))
+    ).all()
+
+    itens = []
+    sem_custo = 0
+    custo_total = _ZERO
+
+    for linha in linhas:
+        unidades = int(linha.unidades_janela or 0)
+        giro_diario = unidades / JANELA_PADRAO_DIAS
+        estoque = linha.quantidade
+
+        if estoque <= 0:
+            if unidades == 0:
+                continue  # sem estoque e sem venda: descontinuado, nao ruptura
+            situacao = "ruptura"
+            dias_restantes = 0.0
+        else:
+            if giro_diario <= 0:
+                continue
+            dias_restantes = estoque / giro_diario
+            if dias_restantes > dias_alerta:
+                continue
+            situacao = "risco"
+
+        alvo = ceil(giro_diario * dias_cobertura)
+        quantidade_sugerida = max(1, alvo - estoque)
+
+        custo_unitario = linha.custo if linha.custo is not None else linha.preco_normal / 2
+        if linha.custo is None:
+            sem_custo += 1
+        custo_compra = round(Decimal(str(custo_unitario)) * quantidade_sugerida, 2)
+        custo_total += custo_compra
+
+        itens.append(
+            {
+                "produto_id": linha.id,
+                "nome": linha.nome,
+                "marca": linha.marca,
+                "tamanho": linha.tamanho,
+                "estoque": estoque,
+                "unidades_vendidas_janela": unidades,
+                "giro_diario": round(giro_diario, 4),
+                "dias_de_estoque_restante": round(dias_restantes, 1),
+                "situacao": situacao,
+                "quantidade_sugerida": quantidade_sugerida,
+                "custo": linha.custo,
+                "custo_estimado_compra": custo_compra,
+                "custo_estimado": linha.custo is None,
+                # Em promocao o produto vende acima do ritmo normal, entao os
+                # dias restantes estao subestimados e a sugestao, inflada.
+                # Sinaliza em vez de excluir -- quem decide e o gestor.
+                "promocao_ativa": bool(linha.promocao_ativa),
+            }
+        )
+
+    itens.sort(key=lambda i: i["dias_de_estoque_restante"])
+    itens = itens[:limite]
+
+    return {
+        "dias_alerta": dias_alerta,
+        "dias_cobertura": dias_cobertura,
+        "itens": itens,
+        "custo_total_estimado": sum((i["custo_estimado_compra"] for i in itens), _ZERO),
+        "produtos_sem_custo": sem_custo,
+    }
 
 
 # ---------------------------------------------------------------------------

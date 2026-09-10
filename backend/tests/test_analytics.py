@@ -377,3 +377,139 @@ def test_resumo_conta_pedidos_nao_confirmados_separadamente(auth_client, db_sess
 
     assert corpo["pedidos_nao_confirmados"] == 1
     assert corpo["unidades_periodo"] == 1  # o GERADO nao entra na receita
+
+
+# ---------------------------------------------------------------------------
+# Sugestao de reposicao (espelho de produtos_parados)
+# ---------------------------------------------------------------------------
+
+
+def test_reposicao_lista_produto_que_vai_acabar(db_session):
+    """180 un em 90 dias = 2/dia. Com 10 em estoque, acaba em 5 dias.
+    Cobertura de 30 dias pede 60 un, entao faltam 50."""
+    produto = _produto(db_session, estoque=10)
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    resultado = analytics_service.sugerir_reposicao(db_session, dias_cobertura=30)
+
+    assert len(resultado["itens"]) == 1
+    item = resultado["itens"][0]
+    assert item["produto_id"] == produto.id
+    assert item["giro_diario"] == 2.0
+    assert item["dias_de_estoque_restante"] == 5.0
+    assert item["situacao"] == "risco"
+    assert item["quantidade_sugerida"] == 50
+
+
+def test_reposicao_ignora_produto_bem_abastecido(db_session):
+    produto = _produto(db_session, estoque=500)
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=1)
+
+    assert analytics_service.sugerir_reposicao(db_session)["itens"] == []
+
+
+def test_reposicao_ignora_giro_zero(db_session):
+    """Sem ritmo nao ha data de ruptura -- esse produto e assunto de
+    `produtos_parados`, e os dois espelhos nao podem se sobrepor."""
+    _produto(db_session, estoque=10)
+
+    assert analytics_service.sugerir_reposicao(db_session)["itens"] == []
+    assert len(analytics_service.produtos_parados(db_session)) == 1
+
+
+def test_reposicao_pega_ruptura_que_escapava_das_duas_listas(db_session):
+    """Estoque zerado + vendeu na janela. `produtos_parados` exige
+    quantidade > 0, e o produto sem estoque para de vender e vai zerando o
+    giro: sumia das duas listas justamente quando custava venda."""
+    produto = _produto(db_session, estoque=0)
+    for dia in range(40, 90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=1)
+
+    resultado = analytics_service.sugerir_reposicao(db_session)
+
+    assert len(resultado["itens"]) == 1
+    assert resultado["itens"][0]["situacao"] == "ruptura"
+    assert resultado["itens"][0]["dias_de_estoque_restante"] == 0.0
+    assert analytics_service.produtos_parados(db_session) == []
+
+
+def test_reposicao_ignora_descontinuado(db_session):
+    """Estoque zero e nenhuma venda: nao e ruptura, e produto que saiu de
+    linha."""
+    _produto(db_session, estoque=0)
+
+    assert analytics_service.sugerir_reposicao(db_session)["itens"] == []
+
+
+def test_reposicao_ordena_por_urgencia(db_session):
+    urgente = _produto(db_session, nome="Urgente", estoque=2)
+    folgado = _produto(db_session, nome="Folgado", estoque=20)
+    for dia in range(90):
+        _venda(db_session, urgente, quando=AGORA - timedelta(days=dia), quantidade=2)
+        _venda(db_session, folgado, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    itens = analytics_service.sugerir_reposicao(db_session)["itens"]
+
+    assert [i["produto_id"] for i in itens] == [urgente.id, folgado.id]
+
+
+def test_reposicao_estima_custo_quando_nao_ha_custo_cadastrado(db_session):
+    """Mesma convencao de `produtos_parados`: metade do preco como proxy,
+    rotulada como estimativa."""
+    produto = _produto(db_session, preco="20.00", custo=None, estoque=10)
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    resultado = analytics_service.sugerir_reposicao(db_session, dias_cobertura=30)
+    item = resultado["itens"][0]
+
+    assert item["custo_estimado"] is True
+    assert item["custo_estimado_compra"] == Decimal("500.00")  # 50 un x 10,00
+    assert resultado["produtos_sem_custo"] == 1
+
+
+def test_reposicao_sinaliza_promocao_ativa(db_session):
+    produto = _produto(db_session, estoque=10)
+    produto.promocao_ativa = True
+    produto.preco_promocional = Decimal("15.00")
+    db_session.commit()
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    assert analytics_service.sugerir_reposicao(db_session)["itens"][0]["promocao_ativa"] is True
+
+
+def test_reposicao_respeita_dias_de_alerta(db_session):
+    produto = _produto(db_session, estoque=40)  # 2/dia -> 20 dias
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    assert analytics_service.sugerir_reposicao(db_session, dias_alerta=15)["itens"] == []
+    assert len(analytics_service.sugerir_reposicao(db_session, dias_alerta=30)["itens"]) == 1
+
+
+def test_giro_da_reposicao_bate_com_o_das_regras_de_ia(db_session):
+    """A reposicao usa consulta agregada e `calcular_sinais` usa duas
+    queries por produto. Se os numeros divergirem, a tela de estoque e a de
+    promocoes contam historias diferentes sobre o mesmo produto."""
+    from app.ai.rules import calcular_sinais
+
+    produto = _produto(db_session, estoque=10)
+    for dia in range(90):
+        _venda(db_session, produto, quando=AGORA - timedelta(days=dia), quantidade=2)
+
+    item = analytics_service.sugerir_reposicao(db_session)["itens"][0]
+    sinais = calcular_sinais(db_session, produto)
+
+    assert item["giro_diario"] == sinais.giro_diario
+    assert item["dias_de_estoque_restante"] == sinais.dias_de_estoque_restante
+
+
+def test_endpoint_reposicao(auth_client):
+    assert auth_client.get("/analytics/reposicao").status_code == 200
+
+
+def test_endpoint_reposicao_exige_autenticacao(client):
+    assert client.get("/analytics/reposicao").status_code == 401
