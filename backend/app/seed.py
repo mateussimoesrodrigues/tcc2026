@@ -63,6 +63,7 @@ from app.models import (
     PromocaoSugestao,
     SessaoCarrinho,
 )
+from app.models.estoque import LIMITE_ESTOQUE_BAIXO_PADRAO
 from app.models.funcionario import PapelFuncionario
 from app.models.historico_preco import TipoAlteracaoPreco
 from app.models.movimentacao_estoque import TipoMovimentacao
@@ -71,7 +72,6 @@ from app.models.produto_codigo import TipoCodigo
 from app.models.promocao_sugestao import PrioridadeSugestao, StatusSugestao
 from app.models.sessao_carrinho import StatusSessaoCarrinho
 from app.services import price_service
-from app.services.stock_service import LIMITE_ESTOQUE_BAIXO_PADRAO
 
 # Credenciais do admin padrao criado pelo seed -- so para desenvolvimento/
 # demonstracao do TCC. Troque a senha (ou desative o usuario) antes de

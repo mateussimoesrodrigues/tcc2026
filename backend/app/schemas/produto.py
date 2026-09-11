@@ -54,10 +54,17 @@ class ProdutoUpdate(BaseModel):
 
 
 class EstoqueResumo(BaseModel):
+    """Estoque embutido no ProdutoRead. `limite_aplicado`/`estoque_baixo`
+    saem de propriedades do modelo Estoque (nao de colunas), e existem aqui
+    pra tela de produtos mostrar catalogo e alerta de estoque numa listagem
+    so -- antes ela precisaria cruzar /produtos com /estoque."""
+
     model_config = ConfigDict(from_attributes=True)
 
     quantidade: int
     quantidade_minima: int | None = None
+    limite_aplicado: int
+    estoque_baixo: bool
 
 
 class ProdutoRead(BaseModel):

@@ -30,10 +30,18 @@ def _erro_preco(e: PrecoPromocionalInvalidoError) -> dict:
 
 @router.post("/gerar-agora", response_model=GerarSugestoesResposta)
 def gerar_agora(db: Session = Depends(get_db)):
-    """Roda o motor de IA na hora (regras + LLM), sem esperar o job diario
-    -- essencial pra demonstrar o fluxo completo ao vivo. Sugestoes com
-    erro de LLM (key ausente, timeout, resposta invalida) aparecem em
-    `falhas`, sem travar as demais."""
+    """Unico caminho de geracao de sugestoes: roda o motor de IA (regras +
+    LLM) no clique do funcionario em "Gerar sugestoes agora". Nao existe
+    mais job por tempo gerando sugestoes sozinho (ver `jobs/scheduler.py`).
+
+    Expira as promocoes vencidas antes de gerar pra que um clique deixe o
+    estado todo em dia numa passada so: produto cuja promocao acabou volta
+    ao preco normal e ja pode ser reavaliado como candidato nesta mesma
+    rodada, sem depender do job de limpeza ter passado antes.
+
+    Sugestoes com erro de LLM (key ausente, timeout, resposta invalida)
+    aparecem em `falhas`, sem travar as demais."""
+    promotion_service.expirar_promocoes_vencidas(db)
     resultado = promotion_service.gerar_sugestoes(db)
     return GerarSugestoesResposta(
         candidatos_avaliados=resultado["candidatos_avaliados"],
@@ -45,8 +53,10 @@ def gerar_agora(db: Session = Depends(get_db)):
 @router.post("/expirar-agora")
 def expirar_agora(db: Session = Depends(get_db)):
     """Reverte na hora as promocoes cujo `promocao_expira_em` ja passou,
-    sem esperar o job periodico do scheduler -- util pra testar/demonstrar
-    a expiracao automatica (ver `enable_scheduler` em core/config.py)."""
+    sem esperar o job periodico de limpeza -- util pra testar/demonstrar a
+    expiracao (ver `enable_scheduler` em core/config.py). `gerar-agora` ja
+    faz isso antes de gerar; este endpoint serve pra expirar sem disparar
+    o LLM."""
     total = promotion_service.expirar_promocoes_vencidas(db)
     return {"promocoes_revertidas": total}
 

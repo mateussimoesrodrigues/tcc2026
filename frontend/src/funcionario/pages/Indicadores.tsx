@@ -145,10 +145,7 @@ export default function Indicadores() {
   return (
     <div className="page page-wide">
       <h1>Indicadores</h1>
-      <p>
-        Como o motor de promoções está se saindo: quanto o funcionário aceita das sugestões da IA, o que
-        aconteceu com as vendas durante cada promoção e onde há capital parado.
-      </p>
+
 
 
 
@@ -253,39 +250,7 @@ export default function Indicadores() {
           </tbody>
         </table>
       </div>
-
-      <h2>Sugestões por modelo</h2>
-      <div className="tabela-wrapper">
-        <table className="tabela-estoque">
-          <thead>
-            <tr>
-              <th>Modelo</th>
-              <th>Sugestões</th>
-              <th>Aprovadas</th>
-              <th>Rejeitadas</th>
-              <th>Taxa de aprovação</th>
-              <th>Desconto médio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sugestoes.por_modelo.map((m) => (
-              <tr key={m.modelo}>
-                <td className="celula-mono">{m.modelo}</td>
-                <td>{m.total}</td>
-                <td>{m.aprovadas}</td>
-                <td>{m.rejeitadas}</td>
-                <td>{pct(m.taxa_aprovacao)}</td>
-                <td>{m.desconto_medio_sugerido ?? "—"}%</td>
-              </tr>
-            ))}
-            {sugestoes.por_modelo.length === 0 && (
-              <tr>
-                <td colSpan={6}>Nenhuma sugestão gerada ainda.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <br></br>
 
       <h2>Capital parado</h2>
       <div className="tabela-wrapper">

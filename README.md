@@ -115,6 +115,21 @@ App sobe em `http://localhost:5173`. Para testar o scanner de câmera num
 celular, é preciso HTTPS (usar um túnel tipo `ngrok` em dev, ou o ambiente
 de deploy).
 
+### Rotas do frontend
+
+O **console do funcionário é a aplicação principal** e mora na raiz: abrir o
+site cai em `/` (tela de Produtos) ou em `/login`, quando não há sessão
+aberta. As telas são `/caixa`, `/entradas`, `/precificacao`, `/promocoes`,
+`/indicadores`, `/historico-precos` e `/displays`.
+
+A **área do cliente** (scanner → carrinho → checkout) fica sob **`/cliente`**
+e não é linkada de lugar nenhum do console — só chega quem digita o
+endereço. Em desenvolvimento: <http://localhost:5173/cliente>; em produção,
+o domínio do Vercel + `/cliente`.
+
+Endereços antigos com o prefixo `/funcionario/...` continuam funcionando:
+são redirecionados para o equivalente na raiz (`/funcionario/caixa` → `/caixa`).
+
 ## Deploy
 
 Backend no **Render** (tier gratuito), frontend no **Vercel** (SPA
@@ -130,14 +145,14 @@ precisar de nenhum segredo configurado.
 > **Tier gratuito do Render "dorme"** depois de ~15min sem requisições —
 > a próxima chamada acorda o serviço com alguns segundos de atraso (cold
 > start). Isso não afeta o botão "Gerar sugestões agora" (só demora um
-> pouco mais na primeira chamada depois de um período parado), mas torna
-> o job diário automático (`ENABLE_SCHEDULER=true`) pouco confiável — por
-> isso o `render.yaml` já deixa `ENABLE_SCHEDULER=false`. Pra automatizar
-> a geração diária de qualquer forma, dá pra trocar o scheduler interno
-> por um cron do GitHub Actions batendo em `POST /promocoes/gerar-agora`
-> (a própria chamada já acorda o serviço). Se preferir um backend que não
-> dorme, `backend/Procfile` e `railway.toml` (Railway, pago) continuam no
-> repo como alternativa.
+> pouco mais na primeira chamada depois de um período parado), que é o
+> único caminho de geração de sugestões. Torna pouco confiável apenas o
+> job de limpeza (`ENABLE_SCHEDULER=true`, que expira promoções vencidas
+> e pedidos abandonados) — por isso o `render.yaml` já deixa
+> `ENABLE_SCHEDULER=false`; a expiração também roda sob demanda em
+> `POST /promocoes/expirar-agora` e antes de cada geração. Se preferir um
+> backend que não dorme, `backend/Procfile` e `railway.toml` (Railway,
+> pago) continuam no repo como alternativa.
 
 **Backend (Render)**:
 1. [dashboard.render.com](https://dashboard.render.com) → New → Blueprint → conectar este repositório. O Render lê o `render.yaml` da raiz e já configura build/start/healthcheck sozinho (aponta pra `backend/`, tier free).
@@ -147,7 +162,7 @@ precisar de nenhum segredo configurado.
 
 **Frontend (Vercel)**:
 1. [vercel.com](https://vercel.com) → Add New Project → importar o mesmo repositório, root directory `frontend`.
-2. Framework preset: Vite (auto-detectado). `frontend/vercel.json` já cuida do rewrite de rotas do React Router (sem isso, dar refresh em `/funcionario/login` daria 404).
+2. Framework preset: Vite (auto-detectado). `frontend/vercel.json` já cuida do rewrite de rotas do React Router (sem isso, dar refresh em `/login` daria 404).
 3. Environment Variable: `VITE_API_URL` = URL do backend no Render (passo anterior).
 4. Deploy. Depois, voltar no Render e atualizar `CORS_ORIGINS` com a URL real do Vercel.
 
@@ -161,7 +176,7 @@ backend/app/
   routers/    # endpoints FastAPI
   services/   # regras de negócio (price_service = único lugar que muda preço)
   ai/         # regras + integração com LLM (motor de sugestão de promoções)
-  jobs/       # rotinas agendadas (geração diária, expiração de promoções e pedidos)
+  jobs/       # rotina agendada de limpeza (expiração de promoções e pedidos)
   alembic/    # migrations
   seed.py     # catálogo + 90 dias de operação SIMULADA (rodar 1x)
 backend/scripts/
@@ -169,9 +184,9 @@ backend/scripts/
   resultados/      # CSVs + metadados das coletas — evidência da monografia
 
 frontend/src/
-  cliente/       # área do cliente: scanner, carrinho, checkout
-  funcionario/   # área do funcionário: caixa, estoque, produtos, promoções,
-                 #   indicadores, histórico de preços, displays
+  cliente/       # área do cliente: scanner, carrinho, checkout (sob /cliente)
+  funcionario/   # área do funcionário: caixa, produtos+estoque, promoções,
+                 #   indicadores, histórico de preços, displays (na raiz)
   api/           # client HTTP
   context/       # estado global (carrinho, autenticação)
 
@@ -202,8 +217,9 @@ firmware/                  # firmware de referência (ESP32) -- ver firmware/REA
   (só admin) cria novos funcionários; seed cria um admin padrão
   (`admin@loja.com` / `admin123` — **troque em produção**). No frontend:
   `AuthContext`, tela de login real, `ProtectedRoute` protegendo a área do
-  funcionário, e `DashboardEstoque` consumindo `/estoque` de verdade com
-  destaque para estoque baixo.
+  funcionário, e a tela `Produtos` (rota índice do console) listando
+  catálogo e estoque na mesma tabela, com destaque para estoque baixo e
+  ajuste manual em linha.
 - **Fase 3 (área do cliente)**: concluída — modelos `sessao_carrinho`,
   `carrinho_item`, `pedido`, `pedido_item` (migration aplicada no Neon);
   cliente identificado por UUID anônimo (`X-Cart-Session`, sem login);
@@ -229,11 +245,13 @@ firmware/                  # firmware de referência (ESP32) -- ver firmware/REA
   antivírus/proxy que faz inspeção SSL. `services/promotion_service.py`
   orquestra tudo e `services/price_service.py` é o único lugar que de
   fato muda preço (transacional, sempre grava histórico);
-  `POST /promocoes/gerar-agora` (sob demanda, essencial pra demo),
+  `POST /promocoes/gerar-agora` (único caminho de geração: roda no clique
+  do funcionário, sem job por tempo gerando promoção sozinho),
   `GET /promocoes`, aprovar/rejeitar, `GET /historico-precos` — todos
-  exigem funcionário logado. Job diário (`jobs/scheduler.py`,
-  APScheduler) fica desligado por padrão (`ENABLE_SCHEDULER=false`) pra
-  não bater na API real durante testes; liga só em produção. Testado de
+  exigem funcionário logado. O `jobs/scheduler.py` (APScheduler) cuida só
+  da limpeza periódica (expirar promoções vencidas e pedidos abandonados)
+  e fica desligado por padrão (`ENABLE_SCHEDULER=false`); liga só em
+  produção. Testado de
   ponta a ponta contra o Neon e a API real do Groq (63 testes
   automatizados com o LLM mockado + geração/aprovação/rejeição reais no
   navegador). Frontend: telas Promoções (gerar sob demanda com spinner de
@@ -250,7 +268,7 @@ firmware/                  # firmware de referência (ESP32) -- ver firmware/REA
 - **Fase 7 (displays físicos)**: backend/API/painel prontos e testados —
   modelo `display` (migration aplicada no Neon), `POST /displays/sincronizar`
   (dispositivo se autentica sozinho via token próprio, sem login de
-  funcionário) e painel `/funcionario/displays` (criar, vincular a produto,
+  funcionário) e painel `/displays` (criar, vincular a produto,
   ver bateria/última sincronização, regenerar token).
   **Duas variantes de firmware, que coexistem de propósito**:
   - `firmware/esp32_display_preco_epaper_pull/` — **produção**: e-paper +
@@ -282,7 +300,7 @@ firmware/                  # firmware de referência (ESP32) -- ver firmware/REA
     da sugestão em outro.
   - **Conferência no caixa**: `GET /pedidos/{numero}`,
     `POST /pedidos/{numero}/conferir`, `GET /pedidos`,
-    `POST /pedidos/expirar-agora` + tela `/funcionario/caixa`. O enum já
+    `POST /pedidos/expirar-agora` + tela `/caixa`. O enum já
     tinha `CONFERIDO_NO_CAIXA` e nenhum código escrevia nele; agora esse é
     o evento que marca a venda como concretizada. Pedido vencido ainda
     pode ser conferido (cliente pega fila) e expirar **não** devolve
@@ -290,7 +308,7 @@ firmware/                  # firmware de referência (ESP32) -- ver firmware/REA
   - **Seed simulado** (ver aviso acima): 56 produtos, ~885 pedidos, ~3.600
     unidades, 18 promoções históricas (2 ainda vigentes).
   - **Camada de indicadores**: `/analytics/*` + tela
-    `/funcionario/indicadores` com taxa de aprovação da IA, desconto
+    `/indicadores` com taxa de aprovação da IA, desconto
     sugerido × aplicado, tempo até decisão, Groq × Gemini, efeito de cada
     promoção (antes/depois normalizado por dia) e capital parado. Gráficos
     em SVG inline, sem biblioteca de charts. Só entram pedidos conferidos

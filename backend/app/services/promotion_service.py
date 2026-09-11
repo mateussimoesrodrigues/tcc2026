@@ -31,8 +31,9 @@ def _produtos_com_sugestao_pendente(db: Session) -> set[int]:
 def gerar_sugestoes(db: Session) -> dict:
     """Roda as regras, chama o LLM pra cada candidato que ainda nao tem
     sugestao pendente em aberto, grava as sugestoes validas. Devolve um
-    resumo (criadas/falhas) -- o endpoint sob demanda usa isso pra dar
-    feedback imediato numa demo ao vivo, sem esperar o job diario."""
+    resumo (criadas/falhas) -- unico chamador e o endpoint disparado pelo
+    clique em "Gerar sugestoes agora", que usa isso pra dar feedback
+    imediato na tela."""
     candidatos = rules.gerar_candidatos(db)
     ja_pendentes = _produtos_com_sugestao_pendente(db)
 
@@ -183,8 +184,9 @@ def rejeitar(
 def expirar_promocoes_vencidas(db: Session) -> int:
     """Produtos com promocao ativa cujo `promocao_expira_em` ja passou --
     reverte pro preco normal via `price_service` (grava `historico_preco`
-    com tipo fim_promocao). Chamado pelo scheduler diario (se habilitado)
-    e/ou disparado manualmente."""
+    com tipo fim_promocao). Chamado pelo job periodico de limpeza (se
+    habilitado), por `POST /promocoes/gerar-agora` antes de gerar e/ou
+    disparado manualmente via `POST /promocoes/expirar-agora`."""
     agora = datetime.now(UTC).replace(tzinfo=None)
     stmt = select(Produto.id).where(Produto.promocao_ativa.is_(True), Produto.promocao_expira_em < agora)
     produto_ids = list(db.execute(stmt).scalars())

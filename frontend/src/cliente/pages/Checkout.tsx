@@ -23,7 +23,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (itens.length === 0) {
-      navigate("/carrinho", { replace: true });
+      navigate("/cliente/carrinho", { replace: true });
       return;
     }
 
@@ -68,7 +68,7 @@ export default function Checkout() {
           Leve este número até o caixa físico para conferência e pagamento. Ele expira em{" "}
           {new Date(estado.pedido.expira_em).toLocaleTimeString()}.
         </p>
-        <button type="button" onClick={() => navigate("/")}>Escanear novo produto</button>
+        <button type="button" onClick={() => navigate("/cliente")}>Escanear novo produto</button>
       </div>
     );
   }
@@ -90,7 +90,7 @@ export default function Checkout() {
           type="button"
           onClick={() => {
             recarregar();
-            navigate("/carrinho");
+            navigate("/cliente/carrinho");
           }}
         >
           Voltar ao carrinho
@@ -104,7 +104,7 @@ export default function Checkout() {
       <h1>Finalizar compra</h1>
       <p className="erro">{estado.mensagem}</p>
       <p>Total do carrinho: R$ {total}</p>
-      <button type="button" onClick={() => navigate("/carrinho")}>Voltar ao carrinho</button>
+      <button type="button" onClick={() => navigate("/cliente/carrinho")}>Voltar ao carrinho</button>
     </div>
   );
 }

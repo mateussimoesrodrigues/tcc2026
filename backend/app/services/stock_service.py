@@ -7,10 +7,10 @@ mesma ideia de `price_service` ser o unico que muda preco. Por isso a
 entrada de mercadoria mora aqui e nao num servico proprio: dois modulos
 mexendo em `Estoque` seria pedir divergencia.
 
-LIMITE_ESTOQUE_BAIXO_PADRAO e o limite global usado quando o produto nao
-tem `quantidade_minima` proprio definido. Na Fase 2 isso vira configuravel
-via a tabela `configuracao`; por ora e uma constante (mesmo valor usado
-pelo seed, para os dados de exemplo baterem com o alerta).
+O limite de estoque baixo em si (LIMITE_ESTOQUE_BAIXO_PADRAO) e a regra de
+"esta baixo?" moram em `models/estoque.py`, como propriedades do proprio
+Estoque -- assim a listagem daqui e os schemas de leitura respondem a
+mesma conta.
 """
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -24,8 +24,6 @@ from app.models.produto import Produto
 from app.schemas.estoque import AjusteEstoqueCreate, EntradaCreate
 from app.services import price_service
 from app.services.exceptions import ProdutoNaoEncontradoError
-
-LIMITE_ESTOQUE_BAIXO_PADRAO = 5
 
 
 def listar_estoque(db: Session, *, somente_baixo: bool = False) -> list[dict]:
@@ -41,9 +39,7 @@ def listar_estoque(db: Session, *, somente_baixo: bool = False) -> list[dict]:
     linhas = []
     for produto in produtos:
         estoque = produto.estoque
-        limite = estoque.quantidade_minima if estoque.quantidade_minima is not None else LIMITE_ESTOQUE_BAIXO_PADRAO
-        baixo = estoque.quantidade <= limite
-        if somente_baixo and not baixo:
+        if somente_baixo and not estoque.estoque_baixo:
             continue
         linhas.append(
             {
@@ -53,8 +49,8 @@ def listar_estoque(db: Session, *, somente_baixo: bool = False) -> list[dict]:
                 "tamanho": produto.tamanho,
                 "quantidade": estoque.quantidade,
                 "quantidade_minima": estoque.quantidade_minima,
-                "limite_aplicado": limite,
-                "estoque_baixo": baixo,
+                "limite_aplicado": estoque.limite_aplicado,
+                "estoque_baixo": estoque.estoque_baixo,
             }
         )
     return linhas

@@ -109,7 +109,7 @@ export default function Scanner() {
         <div className="scanner-resultado scanner-resultado-erro">{resultado.mensagem}</div>
       )}
 
-      <button type="button" onClick={() => navigate("/carrinho")} className="scanner-ir-carrinho">
+      <button type="button" onClick={() => navigate("/cliente/carrinho")} className="scanner-ir-carrinho">
         Ver carrinho
       </button>
     </div>

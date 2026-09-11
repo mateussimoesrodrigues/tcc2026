@@ -38,7 +38,7 @@ panorama completo do sistema.
   sincronizar (`POST /displays/sincronizar`, autenticada pelo token do
   display, sem precisar de login). Contrato completo na seção 4.
 - **Painel web** (`frontend/src/funcionario/pages/Displays.tsx`, rota
-  `/funcionario/displays`): cadastrar um display, vincular a um produto,
+  `/displays`): cadastrar um display, vincular a um produto,
   ver bateria/última sincronização, gerar novo token, desativar.
 - **Push MQTT opcional** (`backend/app/services/mqtt_publisher.py`):
   quando uma promoção é aprovada (ou expira), o backend publica o preço

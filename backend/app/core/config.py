@@ -81,12 +81,12 @@ class Settings(BaseSettings):
     # aviso na tela de indicadores -- honestidade metodologica pro TCC.
     dados_simulados: bool = True
 
-    # Job diario do motor de promocoes (gerar sugestoes + expirar
-    # promocoes vencidas). Desligado por padrao -- o TestClient do pytest
-    # dispara os eventos de startup do FastAPI a cada teste, e um
-    # scheduler ligado bateria na API do LLM de verdade nesse processo.
-    # So habilita explicitamente no ambiente onde a app fica de pe 24/7
-    # (producao).
+    # Job periodico de limpeza (expirar promocoes vencidas e pedidos
+    # abandonados). Nao gera sugestoes -- geracao so acontece no clique em
+    # "Gerar sugestoes agora". Desligado por padrao: o TestClient do pytest
+    # dispara os eventos de startup do FastAPI a cada teste, e nao faz
+    # sentido subir um scheduler por teste. So habilita explicitamente no
+    # ambiente onde a app fica de pe 24/7 (producao).
     enable_scheduler: bool = False
 
     # Intervalo (em segundos) que os displays fisicos de prateleira devem

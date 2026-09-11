@@ -140,6 +140,171 @@
   }
 }
 
+/* --- Console do funcionario: barra lateral ------------------------------- */
+
+/* O console tem nove secoes -- em abas no topo elas viviam em rolagem
+   horizontal, com metade do menu escondida fora da tela. Na lateral cabem
+   todas de uma vez, e o hamburguer devolve a largura ao conteudo quando a
+   tela pede (tabela de estoque, historico de precos). A area do cliente
+   continua com a barra no topo: la sao dois links. */
+
+.app-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-right: 0.55rem;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-300);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
+}
+
+.app-menu-toggle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--ink-800);
+}
+
+.app-menu-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.app-corpo {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  /* min-height/min-width 0: sem isso o conteudo largo (tabelas) estica o
+     flex item e empurra a barra lateral pra fora da tela. */
+  min-height: 0;
+}
+
+.app-console main {
+  min-width: 0;
+}
+
+/* Gruda logo abaixo da barra do topo (52px) e rola sozinha, entao o menu
+   continua a vista em qualquer ponto de uma lista longa. */
+.app-sidebar {
+  position: sticky;
+  top: 52px;
+  align-self: flex-start;
+  height: calc(100svh - 52px);
+  flex-shrink: 0;
+  width: 0;
+  visibility: hidden;
+  overflow: hidden;
+  background: var(--ink-950);
+  border-right: 1px solid var(--ink-800);
+  transition: width var(--transition), visibility var(--transition);
+}
+
+.app-console.menu-aberto .app-sidebar {
+  width: 216px;
+  visibility: visible;
+}
+
+/* Largura fixa no conteudo (e nao so no <aside>): durante a animacao de
+   abrir/fechar os rotulos ficariam quebrando linha a cada pixel. */
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  width: 216px;
+  height: 100%;
+  padding: 0.6rem 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.app-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  color: var(--ink-300);
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  border-left: 2px solid transparent;
+  transition: color var(--transition), background var(--transition);
+}
+
+.app-sidebar-nav a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Barra na borda esquerda marca a secao atual -- o equivalente lateral do
+   sublinhado que a barra do topo usa, e igualmente sem mudar a caixa do
+   item (a borda ja existe transparente acima). */
+.app-sidebar-nav a.active {
+  color: #fff;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: var(--accent-400);
+}
+
+.app-sidebar-backdrop {
+  display: none;
+  padding: 0;
+  border: 0;
+  background: rgba(12, 16, 23, 0.55);
+}
+
+/* Abaixo de 900px a lateral come largura demais do conteudo: vira gaveta
+   sobreposta com fundo escurecido, e fecha ao escolher a pagina (ver
+   fecharSeGaveta no App.tsx). Casar este valor com LARGURA_GAVETA la. */
+@media (max-width: 900px) {
+  .app-sidebar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    bottom: 0;
+    z-index: 30;
+    height: auto;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform var(--transition), visibility var(--transition);
+  }
+
+  .app-console.menu-aberto .app-sidebar {
+    width: 240px;
+    transform: translateX(0);
+  }
+
+  .app-sidebar-nav {
+    width: 240px;
+  }
+
+  .app-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition), visibility var(--transition);
+  }
+
+  .app-console.menu-aberto .app-sidebar-backdrop {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 main {
   flex: 1;
   padding: clamp(1.25rem, 4vw, 2.25rem) clamp(0.9rem, 3vw, 1.5rem) 3rem;
@@ -150,8 +315,17 @@ main {
   margin: 0 auto;
 }
 
+/* Telas do console (todas usam `page page-wide`). Largura relativa, e nao
+   um px fixo: num monitor grande a tabela de produtos (catalogo + estoque
+   na mesma linha) aproveita a tela, e num notebook ela encolhe junto.
+
+   O `max()` e o que segura o outro extremo. Uma porcentagem sozinha
+   desperdicaria 20% justamente onde a tela ja e curta -- no celular, ou no
+   desktop com a barra lateral aberta. Como `max-width` nunca passa da
+   largura disponivel, o piso de 900px equivale a "ocupe tudo" enquanto
+   couber, e so a partir dai os 80% valem de fato. */
 .page-wide {
-  max-width: 960px;
+  max-width: max(80%, 900px);
 }
 
 /* Subtitulo logo abaixo do h1 da pagina. `:not([class])` para nao roubar a
@@ -397,6 +571,14 @@ main {
   font-size: 0.94rem;
 }
 
+/* Variante cinza do .alerta, pro resumo de estoque baixo casar com as
+   linhas destacadas da tabela logo abaixo (ver .linha-baixa). */
+.alerta.alerta-neutro {
+  color: var(--neutral-strong);
+  background: var(--neutral-bg);
+  border-color: var(--neutral-border);
+}
+
 .display-token-box {
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 1rem;
@@ -459,19 +641,31 @@ main {
 }
 
 .tabela-estoque tr.linha-baixa {
-  background: var(--warning-bg);
+  background: var(--neutral-bg);
 }
 
 .tabela-estoque tr.linha-baixa:hover {
-  background: #f9ecd2;
+  background: #dfe3ea;
 }
 
 .tabela-estoque tr.linha-baixa td:first-child {
-  box-shadow: inset 3px 0 0 var(--warning);
+  box-shadow: inset 3px 0 0 var(--neutral);
 }
 
 .linha-inativa {
   opacity: 0.5;
+}
+
+/* Segunda linha dentro de uma celula: marca/tamanho sob o nome do produto,
+   "baixo" sob a quantidade. Serve pra tabela carregar mais informacao sem
+   virar uma fileira de colunas estreitas. */
+.tabela-estoque .celula-detalhe {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 /* --- Scanner (area do cliente) ------------------------------------------- */

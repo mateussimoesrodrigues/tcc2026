@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../../api/client";
 
 interface Categoria {
@@ -27,8 +27,26 @@ interface Produto {
   ativo: boolean;
   preco_vigente: string;
   codigos: ProdutoCodigo[];
-  estoque: { quantidade: number; quantidade_minima: number | null } | null;
+  estoque: EstoqueResumo | null;
 }
+
+interface EstoqueResumo {
+  quantidade: number;
+  quantidade_minima: number | null;
+  // Limite em vigor (o do produto, ou o global quando ele nao tem um) e se
+  // a quantidade ja caiu nele -- vem calculado do backend, ver a
+  // propriedade `estoque_baixo` em models/estoque.py.
+  limite_aplicado: number;
+  estoque_baixo: boolean;
+}
+
+/**
+ * O ajuste é sempre um delta (+3, −2), nunca o saldo final: o razão de
+ * estoque registra movimento, e é dele que saem giro e dias sem venda. Se a
+ * tela gravasse "agora são 8", o sistema não saberia se entraram 3 ou
+ * saíram 2.
+ */
+const MOTIVOS_SAIDA = ["Quebra", "Perda", "Uso interno", "Erro de contagem"];
 
 interface FormCriar {
   codigo: string;
@@ -85,6 +103,19 @@ export default function Produtos() {
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [somenteAtivos, setSomenteAtivos] = useState(true);
+  // Filtro aplicado no cliente, ao contrario de busca/categoria: o resumo
+  // do topo precisa do total de produtos em falta mesmo com ele ligado, e
+  // a lista completa ja esta carregada.
+  const [somenteBaixo, setSomenteBaixo] = useState(false);
+
+  // Ajuste de estoque em linha. Nomes proprios (e nao os `salvando`/
+  // `erroForm` ja usados pelos formularios de criar/editar produto) porque
+  // agora as duas coisas vivem neste mesmo componente.
+  const [ajustando, setAjustando] = useState<number | null>(null);
+  const [delta, setDelta] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [salvandoAjuste, setSalvandoAjuste] = useState(false);
+  const [erroAjuste, setErroAjuste] = useState<string | null>(null);
 
   const [modo, setModo] = useState<"lista" | "criar" | "editar">("lista");
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
@@ -247,6 +278,42 @@ export default function Produtos() {
       carregarProdutos();
     } catch {
       setErro("Não foi possível desativar o produto.");
+    }
+  }
+
+  function abrirAjuste(produtoId: number) {
+    setAjustando(produtoId);
+    setDelta("");
+    setMotivo("");
+    setErroAjuste(null);
+  }
+
+  async function salvarAjuste(e: FormEvent, produtoId: number) {
+    e.preventDefault();
+    const quantidade = Number(delta);
+    if (!Number.isInteger(quantidade) || quantidade === 0) {
+      setErroAjuste("Informe quanto entrou (+) ou saiu (−).");
+      return;
+    }
+
+    setSalvandoAjuste(true);
+    setErroAjuste(null);
+    try {
+      await apiFetch(`/estoque/${produtoId}/ajuste`, {
+        method: "POST",
+        auth: true,
+        body: JSON.stringify({
+          quantidade,
+          tipo: "ajuste",
+          observacao: motivo.trim() || null,
+        }),
+      });
+      setAjustando(null);
+      carregarProdutos();
+    } catch {
+      setErroAjuste("Não foi possível registrar o ajuste.");
+    } finally {
+      setSalvandoAjuste(false);
     }
   }
 
@@ -460,9 +527,21 @@ export default function Produtos() {
     );
   }
 
+  const totalBaixo = produtos.filter((p) => p.estoque?.estoque_baixo).length;
+  const visiveis = somenteBaixo ? produtos.filter((p) => p.estoque?.estoque_baixo) : produtos;
+
   return (
     <div className="page page-wide">
       <h1>Produtos</h1>
+
+      {/* U+FE0E depois do sinal forca o glifo de texto (monocromatico, na cor
+          do paragrafo). Sem ele o Windows troca por emoji e o triangulo volta
+          a aparecer amarelo, justamente o que o cinza queria tirar da tela. */}
+      <p className={totalBaixo > 0 ? "alerta alerta-neutro" : ""}>
+        {totalBaixo > 0
+          ? `⚠︎ ${totalBaixo} produto(s) com estoque baixo.`
+          : "Nenhum produto com estoque baixo no momento."}
+      </p>
 
       <div className="produtos-filtros">
         <input
@@ -482,6 +561,10 @@ export default function Produtos() {
           <input type="checkbox" checked={somenteAtivos} onChange={(e) => setSomenteAtivos(e.target.checked)} />
           Somente ativos
         </label>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={somenteBaixo} onChange={(e) => setSomenteBaixo(e.target.checked)} />
+          Somente estoque baixo
+        </label>
         <button type="button" onClick={abrirCriar} className="produtos-novo-btn">
           + Novo produto
         </button>
@@ -490,50 +573,137 @@ export default function Produtos() {
       {erro && <p className="erro">{erro}</p>}
       {carregando && <p>Carregando...</p>}
 
-      {!carregando && !erro && produtos.length === 0 && <p>Nenhum produto encontrado.</p>}
+      {!carregando && !erro && visiveis.length === 0 && (
+        <p>
+          {somenteBaixo && produtos.length > 0
+            ? "Nenhum produto com estoque baixo neste filtro."
+            : "Nenhum produto encontrado."}
+        </p>
+      )}
 
-      {!carregando && !erro && produtos.length > 0 && (
+      {!carregando && !erro && visiveis.length > 0 && (
         <div className="tabela-wrapper">
           <table className="tabela-estoque">
             <thead>
               <tr>
                 <th>Produto</th>
-                <th>Marca</th>
-                <th>Tamanho</th>
                 <th>Categoria</th>
                 <th>Preço</th>
                 <th>Estoque</th>
+                <th>Limite</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {produtos.map((p) => (
-                <tr key={p.id} className={!p.ativo ? "linha-inativa" : ""}>
-                  <td>{p.nome}</td>
-                  <td>{p.marca ?? "-"}</td>
-                  <td>{p.tamanho ?? "-"}</td>
-                  <td>{nomeCategoria(p.categoria_id)}</td>
-                  <td>
-                    R$ {p.preco_vigente}
-                    {p.promocao_ativa && <span className="promo-detalhe"> (promoção)</span>}
-                  </td>
-                  <td>{p.estoque?.quantidade ?? "-"}</td>
-                  <td className="produtos-acoes-linha">
-                    <button type="button" className="link-button" onClick={() => abrirEditar(p)}>
-                      Editar
-                    </button>
-                    {p.ativo && (
-                      <button type="button" className="link-button produtos-desativar" onClick={() => handleDesativar(p)}>
-                        Desativar
-                      </button>
+              {visiveis.map((p) => {
+                const baixo = p.estoque?.estoque_baixo ?? false;
+                // Marca e tamanho descem pra uma segunda linha da celula do
+                // nome: com categoria, preco, estoque e limite na mesma
+                // tabela, duas colunas so pra isso deixariam a linha longa
+                // demais pra varrer com o olho.
+                const detalhe = [p.marca, p.tamanho].filter(Boolean).join(" · ");
+                const classes = [baixo ? "linha-baixa" : "", p.ativo ? "" : "linha-inativa"]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <Fragment key={p.id}>
+                    <tr className={classes}>
+                      <td>
+                        {p.nome}
+                        {detalhe && <span className="celula-detalhe">{detalhe}</span>}
+                      </td>
+                      <td>{nomeCategoria(p.categoria_id)}</td>
+                      <td>
+                        R$ {p.preco_vigente}
+                        {p.promocao_ativa && <span className="promo-detalhe"> (promoção)</span>}
+                      </td>
+                      <td className="celula-mono">
+                        {p.estoque?.quantidade ?? "-"}
+                        {baixo && <span className="celula-detalhe">⚠︎ baixo</span>}
+                      </td>
+                      <td className="celula-mono">{p.estoque?.limite_aplicado ?? "-"}</td>
+                      <td className="produtos-acoes-linha">
+                        {/* Produto sem linha de estoque (dado legado) nao tem
+                            o que ajustar -- editar/desativar continuam. */}
+                        {p.estoque && (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => (ajustando === p.id ? setAjustando(null) : abrirAjuste(p.id))}
+                          >
+                            {ajustando === p.id ? "Cancelar" : "Ajustar"}
+                          </button>
+                        )}
+                        <button type="button" className="link-button" onClick={() => abrirEditar(p)}>
+                          Editar
+                        </button>
+                        {p.ativo && (
+                          <button
+                            type="button"
+                            className="link-button produtos-desativar"
+                            onClick={() => handleDesativar(p)}
+                          >
+                            Desativar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+
+                    {ajustando === p.id && (
+                      <tr className="estoque-ajuste-linha">
+                        <td colSpan={6}>
+                          <form className="estoque-ajuste-form" onSubmit={(e) => salvarAjuste(e, p.id)}>
+                            <label>
+                              Entrou (+) ou saiu (−)
+                              <input
+                                type="number"
+                                step="1"
+                                value={delta}
+                                onChange={(e) => setDelta(e.target.value)}
+                                placeholder="-2"
+                                autoFocus
+                              />
+                            </label>
+
+                            <label>
+                              Motivo
+                              <input
+                                type="text"
+                                list="motivos-ajuste"
+                                value={motivo}
+                                onChange={(e) => setMotivo(e.target.value)}
+                                placeholder="Quebra, perda, contagem..."
+                                maxLength={255}
+                              />
+                            </label>
+
+                            <button type="submit" disabled={salvandoAjuste}>
+                              {salvandoAjuste ? "Salvando..." : "Registrar ajuste"}
+                            </button>
+
+                            {erroAjuste && <p className="erro">{erroAjuste}</p>}
+                          </form>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                </tr>
-              ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <datalist id="motivos-ajuste">
+        {MOTIVOS_SAIDA.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+
+      <p className="indicadores-nota">
+        Reposição de mercadoria não é ajuste: use <strong>Entradas</strong>, que também registra o
+        custo pago e atualiza a margem do produto.
+      </p>
     </div>
   );
 }

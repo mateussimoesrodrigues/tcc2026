@@ -121,6 +121,10 @@ export default function Promocoes() {
 
   useEffect(carregar, []);
 
+  // Unico gatilho de geracao no sistema: nao ha job por tempo criando
+  // sugestoes sozinho (ver backend/app/jobs/scheduler.py). O endpoint
+  // expira as promocoes vencidas antes de gerar, entao um clique deixa a
+  // tela inteira em dia.
   async function gerarAgora() {
     setGerando(true);
     setErro(null);
@@ -172,10 +176,7 @@ export default function Promocoes() {
   return (
     <div className="page page-wide">
       <h1>Sugestões de promoção (IA)</h1>
-      <p>
-        Regras determinísticas identificam produtos parados/com estoque em excesso; um LLM gratuito
-        sugere o desconto e a justificativa. Nada muda o preço até você aprovar.
-      </p>
+      <br></br>
 
       <button type="button" onClick={gerarAgora} disabled={gerando} className="promo-gerar-btn">
         {gerando && <span className="spinner" aria-hidden="true" />}
@@ -231,7 +232,6 @@ export default function Promocoes() {
             </p>
 
             <p className="promo-justificativa">"{s.justificativa_ia}"</p>
-            <p className="promo-modelo">gerado por {s.modelo_ia_usado}</p>
 
             <textarea
               placeholder="Observação (opcional)"

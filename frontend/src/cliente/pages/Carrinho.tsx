@@ -15,7 +15,7 @@ export default function Carrinho() {
 
       {itens.length === 0 && !erro && (
         <p>
-          Seu carrinho está vazio. <button type="button" className="link-button" onClick={() => navigate("/")}>Escanear um produto</button>
+          Seu carrinho está vazio. <button type="button" className="link-button" onClick={() => navigate("/cliente")}>Escanear um produto</button>
         </p>
       )}
 
@@ -64,7 +64,7 @@ export default function Carrinho() {
             <strong>R$ {total}</strong>
           </div>
 
-          <button type="button" onClick={() => navigate("/checkout")} className="carrinho-finalizar">
+          <button type="button" onClick={() => navigate("/cliente/checkout")} className="carrinho-finalizar">
             Finalizar compra
           </button>
         </>

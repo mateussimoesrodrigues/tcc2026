@@ -1,3 +1,6 @@
+from app.models.estoque import LIMITE_ESTOQUE_BAIXO_PADRAO
+
+
 def test_criar_produto_sem_preco_e_sem_historico_falha(auth_client):
     resposta = auth_client.post(
         "/produtos",
@@ -27,6 +30,37 @@ def test_criar_e_listar_produto(auth_client):
 
     listagem = auth_client.get("/produtos").json()
     assert len(listagem) == 1
+
+
+def test_listagem_de_produtos_traz_alerta_de_estoque(auth_client):
+    """A tela de produtos mostra catalogo e estoque na mesma tabela, entao
+    /produtos precisa trazer o limite em vigor e o alerta ja resolvidos --
+    sem isso o frontend teria que cruzar a resposta com /estoque."""
+    auth_client.post(
+        "/produtos",
+        json={
+            "nome": "Cola Farta",
+            "codigo": "7896576331634",
+            "preco_normal": "19.95",
+            "quantidade_inicial": 40,
+        },
+    )
+    auth_client.post(
+        "/produtos",
+        json={
+            "nome": "Cola Acabando",
+            "codigo": "7896576331635",
+            "preco_normal": "19.95",
+            "quantidade_inicial": 2,
+        },
+    )
+
+    por_nome = {p["nome"]: p["estoque"] for p in auth_client.get("/produtos").json()}
+
+    # Nenhum dos dois tem quantidade_minima propria: cai no limite global.
+    assert por_nome["Cola Farta"]["limite_aplicado"] == LIMITE_ESTOQUE_BAIXO_PADRAO
+    assert por_nome["Cola Farta"]["estoque_baixo"] is False
+    assert por_nome["Cola Acabando"]["estoque_baixo"] is True
 
 
 def test_criar_produto_com_codigo_duplicado_retorna_409(auth_client):

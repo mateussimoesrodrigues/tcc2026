@@ -14,7 +14,7 @@ export default function Login() {
   // sessao ainda valida) -- manda direto pro dashboard em vez de mostrar
   // o formulario de novo por cima da navegacao do funcionario.
   if (!carregando && funcionario) {
-    return <Navigate to="/funcionario" replace />;
+    return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -23,7 +23,7 @@ export default function Login() {
     setEnviando(true);
     try {
       await login(email, senha);
-      navigate("/funcionario");
+      navigate("/");
     } catch {
       setErro("Email ou senha inválidos.");
     } finally {
