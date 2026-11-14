@@ -1638,6 +1638,56 @@ main {
   max-width: 72ch;
 }
 
+.indicadores-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.indicadores-filtros div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.indicadores-filtros label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.indicadores-filtros input {
+  min-height: 2.45rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--ink-800);
+  background: var(--surface);
+}
+
+.indicadores-filtros button {
+  min-height: 2.45rem;
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius);
+  color: white;
+  background: var(--accent-600);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .indicadores-filtros {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 /* --- Graficos (SVG inline) ------------------------------------------------ */
 
 .grafico {

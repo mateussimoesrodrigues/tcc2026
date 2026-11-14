@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     # ambiente onde a app fica de pe 24/7 (producao).
     enable_scheduler: bool = False
 
+    # Simulacao diaria de vendas. Requer o scheduler e permanece desligada
+    # por padrao para nao misturar dados simulados com a operacao real.
+    enable_daily_sales_simulator: bool = False
+    daily_sales_simulation_hour: int = 23
+    daily_sales_simulation_minute: int = 55
+    daily_sales_simulation_seed: int = 2026
+
     # Intervalo (em segundos) que os displays fisicos de prateleira devem
     # esperar entre uma sincronizacao e outra (ver routers/displays.py e
     # docs/displays-fisicos.md). Devolvido a cada resposta de sync, em vez

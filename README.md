@@ -154,6 +154,31 @@ precisar de nenhum segredo configurado.
 > backend que não dorme, `backend/Procfile` e `railway.toml` (Railway,
 > pago) continuam no repo como alternativa.
 
+Para enriquecer o histórico durante a demonstração, existe também uma
+simulação diária opcional. Configure `ENABLE_SCHEDULER=true` e
+`ENABLE_DAILY_SALES_SIMULATOR=true`; por padrão ela roda às 23:55 no fuso
+`America/Sao_Paulo`. O horário e a semente podem ser ajustados por
+`DAILY_SALES_SIMULATION_HOUR`, `DAILY_SALES_SIMULATION_MINUTE` e
+`DAILY_SALES_SIMULATION_SEED`. A rotina cria pedidos conferidos, itens e
+saídas de estoque, respeitando o estoque disponível e promoções ativas.
+Ela também cria algumas promoções inteligentes simuladas, com sugestão
+aprovada, histórico de preço e desconto limitado pelo guard-rail de custo,
+para que o gráfico de efeito das promoções tenha dados para comparar.
+Cada data é registrada em `simulacao_venda_execucao`, portanto reiniciar o
+backend ou executar o job novamente não duplica vendas. Esses dados são
+simulados e não devem ser misturados com indicadores de operação real.
+
+Para criar dados históricos uma única vez, sem habilitar outro job, execute:
+
+```bash
+cd backend
+python -m scripts.simular_historico_vendas --dias 15
+```
+
+Esse comando preenche os 15 dias anteriores ao dia atual, incluindo vendas e
+promoções simuladas. Ele também é idempotente e pode ser repetido com
+segurança.
+
 **Backend (Render)**:
 1. [dashboard.render.com](https://dashboard.render.com) → New → Blueprint → conectar este repositório. O Render lê o `render.yaml` da raiz e já configura build/start/healthcheck sozinho (aponta pra `backend/`, tier free).
 2. Nas variáveis marcadas para preencher na hora: `DATABASE_URL` (a mesma connection string do Neon), `JWT_SECRET_KEY` (gerar uma nova — **não reaproveitar** a de dev: `python -c "import secrets; print(secrets.token_hex(32))"`), `CORS_ORIGINS` (a URL do Vercel — pode deixar `http://localhost:5173` por enquanto e voltar aqui depois), `GROQ_API_KEY`/`GEMINI_API_KEY`.

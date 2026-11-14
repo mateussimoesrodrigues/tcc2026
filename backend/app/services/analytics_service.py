@@ -630,11 +630,18 @@ def sugerir_reposicao(
 # ---------------------------------------------------------------------------
 # 5. Resumo (uma chamada para a pagina inteira)
 # ---------------------------------------------------------------------------
-def resumo(db: Session, *, janela_dias: int = JANELA_PADRAO_DIAS) -> dict:
+def resumo(
+    db: Session,
+    *,
+    janela_dias: int = JANELA_PADRAO_DIAS,
+    desde: datetime | None = None,
+    ate: datetime | None = None,
+) -> dict:
     agora = _agora()
-    desde = agora - timedelta(days=janela_dias)
+    ate = ate or agora
+    desde = desde or (ate - timedelta(days=janela_dias))
 
-    serie = serie_vendas(db, granularidade="dia", desde=desde, ate=agora)
+    serie = serie_vendas(db, granularidade="dia", desde=desde, ate=ate)
     receita_periodo = sum((p["receita"] for p in serie), _ZERO)
     margem_periodo = sum((p["margem_bruta"] for p in serie), _ZERO)
     unidades_periodo = sum(p["unidades"] for p in serie)
@@ -644,13 +651,15 @@ def resumo(db: Session, *, janela_dias: int = JANELA_PADRAO_DIAS) -> dict:
     # (decisao 2 no topo do modulo), mas o painel mostra que existem.
     nao_confirmados = db.execute(
         select(func.count(Pedido.id)).where(
-            Pedido.status.notin_(STATUS_VENDA_CONFIRMADA), Pedido.criado_em >= desde
+            Pedido.status.notin_(STATUS_VENDA_CONFIRMADA),
+            Pedido.criado_em >= desde,
+            Pedido.criado_em < ate,
         )
     ).scalar_one()
 
     return {
         "gerado_em": agora,
-        "janela_dias": janela_dias,
+        "janela_dias": max((ate - desde).days, 1),
         "receita_periodo": receita_periodo,
         "margem_periodo": margem_periodo,
         "unidades_periodo": unidades_periodo,

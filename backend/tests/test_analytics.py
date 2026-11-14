@@ -379,6 +379,20 @@ def test_resumo_conta_pedidos_nao_confirmados_separadamente(auth_client, db_sess
     assert corpo["unidades_periodo"] == 1  # o GERADO nao entra na receita
 
 
+def test_resumo_permite_filtrar_por_datas(auth_client, db_session):
+    produto = _produto(db_session, preco="20.00", custo="10.00")
+    _venda(db_session, produto, quando=AGORA - timedelta(days=2), quantidade=2)
+    _venda(db_session, produto, quando=AGORA - timedelta(days=1), quantidade=1)
+
+    desde = (AGORA - timedelta(days=2)).date().isoformat()
+    ate = (AGORA - timedelta(days=2)).date().isoformat()
+    corpo = auth_client.get(f"/analytics/resumo?data_desde={desde}&data_ate={ate}").json()
+
+    assert corpo["janela_dias"] == 1
+    assert float(corpo["receita_periodo"]) == 40.0
+    assert corpo["pedidos_periodo"] == 1
+
+
 # ---------------------------------------------------------------------------
 # Sugestao de reposicao (espelho de produtos_parados)
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { apiFetch } from "../../api/client";
 import GraficoBarras from "../components/GraficoBarras";
 import GraficoLinha from "../components/GraficoLinha";
@@ -106,6 +107,20 @@ function duracaoLegivel(minutos: number | null): string {
   return horas < 48 ? `${horas.toFixed(1)} h` : `${(horas / 24).toFixed(1)} dias`;
 }
 
+function dataLocal(valor: Date): string {
+  const ano = valor.getFullYear();
+  const mes = String(valor.getMonth() + 1).padStart(2, "0");
+  const dia = String(valor.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function deslocarData(data: string, dias: number): string {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  const resultado = new Date(ano, mes - 1, dia);
+  resultado.setDate(resultado.getDate() + dias);
+  return dataLocal(resultado);
+}
+
 function Kpi({ rotulo, valor, apoio }: { rotulo: string; valor: string; apoio?: string }) {
   return (
     <div className="kpi">
@@ -120,13 +135,44 @@ export default function Indicadores() {
   const [dados, setDados] = useState<Resumo | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const hoje = dataLocal(new Date());
+  const [dataDesde, setDataDesde] = useState(() => deslocarData(hoje, -14));
+  const [dataAte, setDataAte] = useState(hoje);
+  const [filtroDesde, setFiltroDesde] = useState(() => deslocarData(hoje, -14));
+  const [filtroAte, setFiltroAte] = useState(hoje);
 
   useEffect(() => {
-    apiFetch<Resumo>("/analytics/resumo", { auth: true })
+    setCarregando(true);
+    setErro(null);
+    apiFetch<Resumo>(
+      `/analytics/resumo?data_desde=${filtroDesde}&data_ate=${filtroAte}`,
+      { auth: true },
+    )
       .then(setDados)
       .catch(() => setErro("Não foi possível carregar os indicadores."))
       .finally(() => setCarregando(false));
-  }, []);
+  }, [filtroDesde, filtroAte]);
+
+  const serieCompleta = useMemo(() => {
+    if (!dados) return [];
+
+    const porDia = new Map(dados.serie.map((p) => [p.periodo, p]));
+    const pontos: PontoSerie[] = [];
+    for (let dia = filtroDesde; dia <= filtroAte; dia = deslocarData(dia, 1)) {
+      pontos.push(
+        porDia.get(dia) ?? {
+          periodo: dia,
+          receita: "0",
+          unidades: 0,
+          pedidos: 0,
+          margem_bruta: "0",
+          margem_percentual: null,
+          receita_sem_custo_cadastrado: "0",
+        },
+      );
+    }
+    return pontos;
+  }, [dados, filtroDesde, filtroAte]);
 
   if (carregando) return <div className="page page-wide"><p>Carregando indicadores...</p></div>;
   if (erro) return <div className="page page-wide"><p className="erro">{erro}</p></div>;
@@ -145,6 +191,41 @@ export default function Indicadores() {
   return (
     <div className="page page-wide">
       <h1>Indicadores</h1>
+
+      <form
+        className="indicadores-filtros"
+        onSubmit={(evento: FormEvent<HTMLFormElement>) => {
+          evento.preventDefault();
+          if (dataDesde > dataAte) {
+            setErro("A data inicial não pode ser maior que a data final.");
+            return;
+          }
+          setFiltroDesde(dataDesde);
+          setFiltroAte(dataAte);
+        }}
+      >
+        <div>
+          <label htmlFor="indicadores-desde">De</label>
+          <input
+            id="indicadores-desde"
+            type="date"
+            value={dataDesde}
+            max={dataAte}
+            onChange={(evento) => setDataDesde(evento.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="indicadores-ate">Até</label>
+          <input
+            id="indicadores-ate"
+            type="date"
+            value={dataAte}
+            min={dataDesde}
+            onChange={(evento) => setDataAte(evento.target.value)}
+          />
+        </div>
+        <button type="submit">Aplicar período</button>
+      </form>
 
 
 
@@ -166,9 +247,19 @@ export default function Indicadores() {
           apoio={`mediana · média ${duracaoLegivel(sugestoes.tempo_medio_decisao_minutos)}`}
         />
         <Kpi
-          rotulo={`Receita (${dados.janela_dias} dias)`}
+          rotulo="Receita no período"
           valor={moeda(dados.receita_periodo)}
           apoio={`margem ${moeda(dados.margem_periodo)} · ticket ${dados.ticket_medio ? moeda(dados.ticket_medio) : "—"}`}
+        />
+        <Kpi
+          rotulo="Unidades vendidas"
+          valor={String(dados.unidades_periodo)}
+          apoio="somente pedidos conferidos"
+        />
+        <Kpi
+          rotulo="Pedidos confirmados"
+          valor={String(dados.pedidos_periodo)}
+          apoio={`${dados.pedidos_nao_confirmados} aguardando conferência`}
         />
       </div>
 
@@ -184,8 +275,12 @@ export default function Indicadores() {
       </p>
 
       <h2>Receita por dia</h2>
+      <p className="indicadores-nota">
+        Receita dos pedidos conferidos no caixa entre {filtroDesde} e {filtroAte}.
+        Dias sem venda aparecem como zero.
+      </p>
       <GraficoLinha
-        pontos={serie.map((p) => ({ rotulo: p.periodo, valor: Number(p.receita) }))}
+        pontos={serieCompleta.map((p) => ({ rotulo: p.periodo, valor: Number(p.receita) }))}
         formatar={(v) => `R$${Math.round(v)}`}
       />
 

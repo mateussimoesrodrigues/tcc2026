@@ -1,7 +1,7 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -81,7 +81,24 @@ def reposicao(
 
 
 @router.get("/resumo", response_model=ResumoAnalyticsRead)
-def resumo(janela_dias: int = analytics_service.JANELA_PADRAO_DIAS, db: Session = Depends(get_db)):
+def resumo(
+    janela_dias: int = analytics_service.JANELA_PADRAO_DIAS,
+    data_desde: date | None = None,
+    data_ate: date | None = None,
+    db: Session = Depends(get_db),
+):
     """Tudo que a tela de indicadores precisa numa chamada so."""
-    dados = analytics_service.resumo(db, janela_dias=janela_dias)
+    if (data_desde is None) != (data_ate is None):
+        raise HTTPException(
+            status_code=400,
+            detail="data_desde e data_ate devem ser informadas juntas.",
+        )
+    if data_desde is not None and data_ate is not None:
+        if data_desde > data_ate:
+            raise HTTPException(status_code=400, detail="data_desde nao pode ser maior que data_ate.")
+        inicio = datetime.combine(data_desde, time.min)
+        fim = datetime.combine(data_ate + timedelta(days=1), time.min)
+        dados = analytics_service.resumo(db, desde=inicio, ate=fim)
+    else:
+        dados = analytics_service.resumo(db, janela_dias=janela_dias)
     return ResumoAnalyticsRead(dados_simulados=get_settings().dados_simulados, **dados)
