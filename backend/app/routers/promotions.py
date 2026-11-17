@@ -12,6 +12,7 @@ from app.schemas.promocao import (
     GerarSugestoesResposta,
     RejeitarSugestaoRequest,
     SugestaoRead,
+    AvaliacaoCandidato,
 )
 from app.services import promotion_service
 from app.services.exceptions import (
@@ -47,6 +48,7 @@ def gerar_agora(db: Session = Depends(get_db)):
         candidatos_avaliados=resultado["candidatos_avaliados"],
         sugestoes_criadas=[SugestaoRead.de_model(s) for s in resultado["criadas"]],
         falhas=[FalhaGeracao(**f) for f in resultado["falhas"]],
+        avaliacoes=[AvaliacaoCandidato(**avaliacao) for avaliacao in resultado["avaliacoes"]],
     )
 
 

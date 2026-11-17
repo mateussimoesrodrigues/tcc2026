@@ -75,6 +75,14 @@ class FalhaGeracao(BaseModel):
     categoria: str = "llm"
 
 
+class AvaliacaoCandidato(BaseModel):
+    produto_id: int
+    nome: str
+    status: str
+    motivo: str | None = None
+    categoria: str | None = None
+
+
 class ErroPrecoRead(BaseModel):
     """Corpo dos 422/409 de preco promocional. `codigo` e estavel (ver
     `services/exceptions.PrecoPromocionalInvalidoError`) -- a UI decide a
@@ -90,3 +98,4 @@ class GerarSugestoesResposta(BaseModel):
     candidatos_avaliados: int
     sugestoes_criadas: list[SugestaoRead]
     falhas: list[FalhaGeracao]
+    avaliacoes: list[AvaliacaoCandidato]

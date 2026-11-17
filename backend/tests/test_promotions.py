@@ -8,6 +8,7 @@ from app.ai import llm_provider
 from app.models.estoque import Estoque
 from app.models.movimentacao_estoque import MovimentacaoEstoque, TipoMovimentacao
 from app.models.produto import Produto
+from app.models.promocao_sugestao import PromocaoSugestao
 
 
 def _produto_parado(db_session, *, preco_normal="20.00", quantidade=10):
@@ -66,6 +67,13 @@ def test_gerar_agora_cria_sugestao_para_produto_parado(auth_client, db_session, 
     corpo = resposta.json()
     assert corpo["candidatos_avaliados"] == 1
     assert len(corpo["sugestoes_criadas"]) == 1
+    assert corpo["avaliacoes"] == [{
+        "produto_id": produto.id,
+        "nome": produto.nome,
+        "status": "criada",
+        "motivo": None,
+        "categoria": None,
+    }]
 
     sugestao = corpo["sugestoes_criadas"][0]
     assert sugestao["produto_id"] == produto.id
@@ -82,6 +90,23 @@ def test_gerar_agora_nao_duplica_sugestao_pendente(auth_client, db_session, monk
     resposta2 = auth_client.post("/promocoes/gerar-agora")
 
     assert resposta2.json()["sugestoes_criadas"] == []
+    assert resposta2.json()["avaliacoes"][0]["status"] == "ja_pendente"
+
+
+def test_gerar_agora_ignora_sugestao_pendente_com_mais_de_24_horas(auth_client, db_session, monkeypatch):
+    _produto_parado(db_session)
+    _mockar_llm_sucesso(monkeypatch)
+    auth_client.post("/promocoes/gerar-agora")
+
+    sugestao = db_session.query(PromocaoSugestao).one()
+    sugestao.criado_em = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=25)
+    db_session.commit()
+
+    resposta = auth_client.post("/promocoes/gerar-agora")
+
+    assert resposta.status_code == 200
+    assert len(resposta.json()["sugestoes_criadas"]) == 1
+    assert resposta.json()["avaliacoes"][0]["status"] == "criada"
 
 
 def test_gerar_agora_registra_falha_sem_travar(auth_client, db_session, monkeypatch):
@@ -110,6 +135,22 @@ def test_listar_sugestoes_filtra_por_status(auth_client, db_session, monkeypatch
 
     resposta_aprovadas = auth_client.get("/promocoes", params={"status_filtro": "aprovada"})
     assert resposta_aprovadas.json() == []
+
+
+def test_listar_sugestoes_exibe_apenas_ultimas_24_horas(auth_client, db_session, monkeypatch):
+    _produto_parado(db_session)
+    _produto_parado(db_session)
+    _mockar_llm_sucesso(monkeypatch)
+    auth_client.post("/promocoes/gerar-agora")
+
+    sugestoes = db_session.query(PromocaoSugestao).order_by(PromocaoSugestao.id).all()
+    sugestoes[0].criado_em = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=25)
+    db_session.commit()
+
+    resposta = auth_client.get("/promocoes", params={"status_filtro": "pendente"})
+
+    assert resposta.status_code == 200
+    assert [sugestao["id"] for sugestao in resposta.json()] == [sugestoes[1].id]
 
 
 def test_aprovar_sugestao_aplica_preco_e_grava_historico(auth_client, db_session, monkeypatch):

@@ -3,7 +3,7 @@ dos dados reais da loja, `ai/llm_provider.py` transforma os sinais de cada
 candidato numa sugestao de desconto, e o resultado fica `pendente` ate o
 funcionario aprovar ou rejeitar (`routers/promotions.py`). Aprovacao
 delega pro `price_service` -- unico lugar que de fato muda o preco."""
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -22,9 +22,15 @@ from app.services.exceptions import (
     SugestaoNaoEncontradaError,
 )
 
+JANELA_SUGESTOES_HORAS = 24
+
 
 def _produtos_com_sugestao_pendente(db: Session) -> set[int]:
-    stmt = select(PromocaoSugestao.produto_id).where(PromocaoSugestao.status == StatusSugestao.PENDENTE)
+    desde = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=JANELA_SUGESTOES_HORAS)
+    stmt = select(PromocaoSugestao.produto_id).where(
+        PromocaoSugestao.status == StatusSugestao.PENDENTE,
+        PromocaoSugestao.criado_em >= desde,
+    )
     return set(db.execute(stmt).scalars())
 
 
@@ -39,17 +45,26 @@ def gerar_sugestoes(db: Session) -> dict:
 
     criadas: list[PromocaoSugestao] = []
     falhas: list[dict] = []
+    avaliacoes: list[dict] = []
 
     for sinais in candidatos:
         if sinais.produto_id in ja_pendentes:
+            avaliacoes.append(
+                {
+                    "produto_id": sinais.produto_id,
+                    "nome": sinais.nome,
+                    "status": "ja_pendente",
+                    "motivo": "Ja existe uma sugestao pendente para este produto.",
+                }
+            )
             continue
 
         try:
             sugestao_llm = gerar_sugestao_llm(sinais)
         except (LLMIndisponivelError, RespostaLLMInvalidaError) as e:
-            falhas.append(
-                {"produto_id": sinais.produto_id, "nome": sinais.nome, "motivo": str(e), "categoria": "llm"}
-            )
+            falha = {"produto_id": sinais.produto_id, "nome": sinais.nome, "motivo": str(e), "categoria": "llm"}
+            falhas.append(falha)
+            avaliacoes.append({**falha, "status": "falha"})
             continue
 
         # Guard-rail antes de persistir: uma sugestao que fere o piso de
@@ -61,14 +76,14 @@ def gerar_sugestoes(db: Session) -> dict:
         try:
             price_service.validar_preco_promocional(produto, sugestao_llm.preco_sugerido)
         except PrecoPromocionalInvalidoError as e:
-            falhas.append(
-                {
-                    "produto_id": sinais.produto_id,
-                    "nome": sinais.nome,
-                    "motivo": str(e),
-                    "categoria": "guard_rail",
-                }
-            )
+            falha = {
+                "produto_id": sinais.produto_id,
+                "nome": sinais.nome,
+                "motivo": str(e),
+                "categoria": "guard_rail",
+            }
+            falhas.append(falha)
+            avaliacoes.append({**falha, "status": "falha"})
             continue
 
         sugestao = PromocaoSugestao(
@@ -83,18 +98,28 @@ def gerar_sugestoes(db: Session) -> dict:
         )
         db.add(sugestao)
         criadas.append(sugestao)
+        avaliacoes.append(
+            {"produto_id": sinais.produto_id, "nome": sinais.nome, "status": "criada", "motivo": None}
+        )
 
     db.commit()
     for sugestao in criadas:
         db.refresh(sugestao)
 
-    return {"criadas": criadas, "falhas": falhas, "candidatos_avaliados": len(candidatos)}
+    return {
+        "criadas": criadas,
+        "falhas": falhas,
+        "avaliacoes": avaliacoes,
+        "candidatos_avaliados": len(candidatos),
+    }
 
 
 def listar_sugestoes(db: Session, *, status: StatusSugestao | None = None) -> list[PromocaoSugestao]:
+    desde = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=JANELA_SUGESTOES_HORAS)
     stmt = (
         select(PromocaoSugestao)
         .options(joinedload(PromocaoSugestao.produto))
+        .where(PromocaoSugestao.criado_em >= desde)
         .order_by(PromocaoSugestao.criado_em.desc())
     )
     if status is not None:

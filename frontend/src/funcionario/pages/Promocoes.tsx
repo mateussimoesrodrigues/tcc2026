@@ -38,6 +38,14 @@ interface Falha {
   categoria?: "llm" | "guard_rail";
 }
 
+interface AvaliacaoCandidato {
+  produto_id: number;
+  nome: string;
+  status: "criada" | "ja_pendente" | "falha";
+  motivo: string | null;
+  categoria?: "llm" | "guard_rail";
+}
+
 // Corpo dos 422/409 de preço promocional (schemas/promocao.ErroPrecoRead).
 interface ErroPreco {
   codigo: string;
@@ -78,6 +86,7 @@ interface GerarResposta {
   candidatos_avaliados: number;
   sugestoes_criadas: Sugestao[];
   falhas: Falha[];
+  avaliacoes: AvaliacaoCandidato[];
 }
 
 function resumoSinais(s: SinaisDetectados): string {
@@ -191,17 +200,22 @@ export default function Promocoes() {
 
       {resumoGeracao && (
         <p className="promo-resumo-geracao">
-          {resumoGeracao.candidatos_avaliados} candidato(s) avaliado(s), {resumoGeracao.sugestoes_criadas.length}{" "}
+          {resumoGeracao.candidatos_avaliados} candidato(s) analisado(s), {resumoGeracao.sugestoes_criadas.length}{" "}
           sugestão(ões) nova(s)
           {resumoGeracao.falhas.length > 0 && <> — {resumoGeracao.falhas.length} não gerou sugestão</>}.
         </p>
       )}
-      {resumoGeracao && resumoGeracao.falhas.length > 0 && (
+      {resumoGeracao && resumoGeracao.avaliacoes.length > 0 && (
         <ul className="promo-falhas">
-          {resumoGeracao.falhas.map((f) => (
-            <li key={f.produto_id}>
-              <strong>{f.nome}</strong>
-              {f.categoria === "guard_rail" ? " (barrado pelo piso de custo)" : " (IA indisponível)"}: {f.motivo}
+          {resumoGeracao.avaliacoes.map((avaliacao) => (
+            <li key={avaliacao.produto_id}>
+              <strong>{avaliacao.nome}</strong>: {avaliacao.status === "criada" ? "sugestão criada" : ""}
+              {avaliacao.status === "ja_pendente" ? "já possuía uma sugestão pendente" : ""}
+              {avaliacao.status === "falha" && (
+                <>
+                  {avaliacao.categoria === "guard_rail" ? "barrado pelo piso de custo" : "IA indisponível"}: {avaliacao.motivo}
+                </>
+              )}
             </li>
           ))}
         </ul>
