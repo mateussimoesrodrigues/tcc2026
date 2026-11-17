@@ -23,9 +23,11 @@ no horario configurado para alimentar o historico com vendas simuladas.
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from datetime import UTC, datetime
 
 from app.core.database import SessionLocal
 from app.core.config import get_settings
+from app.models.job_atualizacao import JobAtualizacao
 from app.services import order_service, promotion_service
 from app.services.daily_sales_service import simular_promocoes_do_dia, simular_vendas_do_dia
 
@@ -56,6 +58,8 @@ def _rodar_job_vendas_diarias() -> None:
             ativar_produtos=True,
         )
         simular_vendas_do_dia(db, semente=settings.daily_sales_simulation_seed)
+        db.add(JobAtualizacao(atualizado_em=datetime.now(UTC).replace(tzinfo=None)))
+        db.commit()
     finally:
         db.close()
 

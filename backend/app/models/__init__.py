@@ -15,6 +15,7 @@ from app.models.promocao_sugestao import PromocaoSugestao
 from app.models.historico_preco import HistoricoPreco
 from app.models.display import Display
 from app.models.simulacao_venda import SimulacaoVendaExecucao
+from app.models.job_atualizacao import JobAtualizacao
 
 __all__ = [
     "Categoria",
@@ -31,4 +32,5 @@ __all__ = [
     "HistoricoPreco",
     "Display",
     "SimulacaoVendaExecucao",
+    "JobAtualizacao",
 ]
