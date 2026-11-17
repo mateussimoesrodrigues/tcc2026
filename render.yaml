@@ -7,12 +7,8 @@
 # A geracao de sugestoes roda so no clique em "Gerar sugestoes agora" --
 # nao ha job por tempo gerando promocao sozinho. ENABLE_SCHEDULER controla
 # apenas o job de limpeza (expirar promocoes vencidas e pedidos
-# abandonados) e fica "false" porque o tier gratuito do Render "dorme"
-# apos ~15min sem requisicoes, o que tornaria o job pouco confiavel; a
-# expiracao sob demanda continua em POST /promocoes/expirar-agora (e o
-# proprio "Gerar sugestoes agora" expira antes de gerar). O botao funciona
-# normal, so com um atraso a mais na primeira chamada se o servico tiver
-# dormido (cold start).
+# abandonados). O tier gratuito do Render "dorme" apos ~15min sem
+# requisicoes, entao o job roda quando o processo estiver acordado.
 services:
   - type: web
     name: precificacao-inteligente-api
@@ -28,7 +24,13 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: ENABLE_SCHEDULER
-        value: "false"
+        value: "true"
+      - key: ENABLE_DAILY_SALES_SIMULATOR
+        value: "true"
+      - key: DAILY_SALES_SIMULATION_HOUR
+        value: "21"
+      - key: DAILY_SALES_SIMULATION_MINUTE
+        value: "35"
       - key: JWT_ALGORITHM
         value: HS256
       - key: JWT_EXPIRE_MINUTES
