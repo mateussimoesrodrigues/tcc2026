@@ -2,6 +2,18 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <!-- Tema (claro/escuro) aplicado ANTES da primeira pintura, pra nao piscar
+         claro e escurecer. Mesma regra de src/tema.ts: escolha salva, senao
+         o tema do sistema. Em try/catch porque o storage pode estar bloqueado. -->
+    <script>
+      try {
+        var t = localStorage.getItem("tema");
+        if (t !== "claro" && t !== "escuro") {
+          t = matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
+        }
+        document.documentElement.dataset.tema = t;
+      } catch (e) {}
+    </script>
     <!-- Favicons da marca (arquivos em public/). O .ico com sizes="any" cobre
          navegador antigo; o SVG e o preferido nos modernos; os PNGs de 16/32
          cobrem quem nao usa SVG; o de 180 e o icone de "adicionar a tela de

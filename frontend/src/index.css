@@ -20,12 +20,25 @@
    fundo claro: la entra o lima-escuro (3,1:1, so grafico/selo grande) e, para
    texto pequeno, uma mistura mais escura dele (--promo-ink, 5,7:1).
 
-   Tema fixo em claro: o app roda no balcao e no celular, entao
-   previsibilidade vale mais que seguir prefers-color-scheme. A barra do
-   topo e a lateral sao escuras (grafite) e carregam a logo "dark".
+   Dois temas, escolhidos no menu do perfil: claro (padrao dos tokens abaixo)
+   e escuro (bloco :root[data-tema="escuro"], no fim). Sem escolha salva, vale
+   o do sistema (prefers-color-scheme) -- ver src/tema.ts e o script de
+   index.html, que poe data-tema no <html> antes da primeira pintura.
+
+   Tres regras que mantem os dois temas coerentes:
+   - A barra do topo, a lateral e a caixa da camera sao SEMPRE grafite, nos
+     dois temas: usam --chrome-*, que nao inverte. A escala --ink-* e a de
+     TEXTO sobre superficie, e essa inverte no tema escuro.
+   - O accent como texto/foco/serie de grafico (--accent-text, --foco,
+     --serie) vira teal no escuro. O accent como FUNDO de botao (--accent-600
+     e vizinhos) nao muda de tema.
+   - A tela de login fica sempre clara: .login-split redeclara os tokens
+     claros localmente (por isso o bloco abaixo vale para os dois seletores),
+     entao o tema escuro nao chega nela.
    =========================================================================== */
 
-:root {
+:root,
+.login-split {
   /* --- Paleta oficial ----------------------------------------------------- */
   --petroleo: #0f766e;
   --teal: #14b8a6;
@@ -47,6 +60,13 @@
   --ink-400: var(--cinza-400);
   --ink-300: color-mix(in srgb, var(--cinza-400) 62%, var(--superficie-clara));
 
+  /* "Chrome" escuro FIXO (barra do topo, lateral, caixa da camera): igual nos
+     dois temas, por isso nao usa --ink-*, que inverte. */
+  --chrome-bg: var(--grafite);
+  --chrome-text: var(--ink-300);
+  --chrome-text-soft: var(--cinza-400);
+  --chrome-line: color-mix(in srgb, var(--grafite) 80%, var(--cinza-500));
+
   /* Petroleo -- acao, foco, serie principal dos graficos. O teal e o "400":
      marcador de item ativo sobre o grafite. */
   --accent-50: color-mix(in srgb, var(--petroleo) 6%, white);
@@ -58,6 +78,13 @@
   --accent-600: var(--petroleo);
   --accent-700: color-mix(in srgb, var(--petroleo) 82%, var(--grafite));
   --accent-800: color-mix(in srgb, var(--petroleo) 62%, var(--grafite));
+
+  /* Papeis do accent fora de botao: texto/link, anel de foco e serie dos
+     graficos. No claro e o petroleo; no escuro, o teal (o petroleo some no
+     fundo grafite). */
+  --accent-text: var(--accent-700);
+  --foco: var(--accent-600);
+  --serie: var(--accent-600);
 
   /* Lima -- promocao e preco que cai. Funcional, nunca decorativo. Em fundo
      claro usa o lima-escuro; o --promo-vivid so vai sobre grafite. */
@@ -85,7 +112,7 @@
   /* Estados. Sucesso e da familia do petroleo (a marca ja e verde-azulada).
      Alerta e perigo seguem ambar e vermelho: a paleta nao tem cor de erro,
      e sinalizar falha com cor de marca esconderia o problema. */
-  --success: var(--accent-700);
+  --success: var(--accent-text);
   --success-strong: var(--accent-800);
   --success-bg: var(--accent-50);
   --success-border: var(--accent-200);
@@ -133,7 +160,9 @@
 
   --ring: 0 0 0 3px color-mix(in srgb, var(--teal) 32%, transparent);
   --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+:root {
   font-family: var(--sans);
   font-size: 15.5px;
   line-height: 1.55;
@@ -145,6 +174,68 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Tema escuro ----------------------------------------------------------
+   So o que muda: superficies (grafite subindo em direcao ao cinza-500), a
+   escala de texto invertida, os tons do accent/promocao/estados e as
+   sombras. Tudo derivado dos mesmos hexadecimais da marca; o lima vibrante
+   entra aqui porque agora ha fundo escuro de verdade para ele. */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+
+  --bg: color-mix(in srgb, var(--grafite) 90%, var(--cinza-500));
+  --surface: color-mix(in srgb, var(--grafite) 82%, var(--cinza-500));
+  --surface-muted: color-mix(in srgb, var(--grafite) 74%, var(--cinza-500));
+  --surface-sunken: color-mix(in srgb, var(--grafite) 66%, var(--cinza-500));
+  --border: color-mix(in srgb, var(--grafite) 62%, var(--cinza-500));
+  --border-strong: color-mix(in srgb, var(--grafite) 40%, var(--cinza-500));
+
+  /* Escala de texto invertida (a de 500 a 300 e media e serve nos dois). */
+  --ink-950: var(--superficie-clara);
+  --ink-900: color-mix(in srgb, var(--superficie-clara) 90%, var(--cinza-400));
+  --ink-800: color-mix(in srgb, var(--superficie-clara) 78%, var(--cinza-400));
+  --ink-700: color-mix(in srgb, var(--superficie-clara) 50%, var(--cinza-400));
+  --ink-600: var(--cinza-400);
+  --text-muted: var(--cinza-400);
+  --text-soft: color-mix(in srgb, var(--cinza-400) 70%, var(--cinza-500));
+
+  --accent-50: color-mix(in srgb, var(--teal) 10%, var(--surface));
+  --accent-100: color-mix(in srgb, var(--teal) 18%, var(--surface));
+  --accent-200: color-mix(in srgb, var(--teal) 34%, var(--surface));
+  --accent-text: var(--teal);
+  --foco: var(--teal);
+  --serie: var(--teal);
+
+  /* Promocao: o lima vibrante, sobre fundo escuro, como o briefing manda. */
+  --promo: var(--lima);
+  --promo-ink: var(--lima);
+  --promo-bg: color-mix(in srgb, var(--lima) 10%, var(--surface));
+  --promo-border: color-mix(in srgb, var(--lima) 34%, var(--surface));
+
+  --success-strong: color-mix(in srgb, var(--teal) 70%, white);
+
+  /* Ambar e vermelho: mesma familia de matiz, clareados (oklch) pro texto e
+     com so um tingimento sobre a superficie no fundo e na borda. */
+  --warning: color-mix(in oklch, #8a5a06 55%, white);
+  --warning-strong: color-mix(in oklch, #8a5a06 40%, white);
+  --warning-bg: color-mix(in srgb, #8a5a06 16%, var(--surface));
+  --warning-border: color-mix(in srgb, #8a5a06 45%, var(--surface));
+
+  --danger: color-mix(in oklch, #c22b34 55%, white);
+  --danger-strong: color-mix(in oklch, #c22b34 38%, white);
+  --danger-bg: color-mix(in srgb, #c22b34 16%, var(--surface));
+  --danger-border: color-mix(in srgb, #c22b34 42%, var(--surface));
+
+  --neutral: var(--cinza-400);
+  --neutral-strong: var(--ink-800);
+  --neutral-bg: color-mix(in srgb, var(--cinza-500) 18%, var(--surface));
+  --neutral-border: color-mix(in srgb, var(--cinza-400) 28%, var(--surface));
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
 }
 
 *,
@@ -199,7 +290,7 @@ p:last-child {
 }
 
 a {
-  color: var(--accent-700);
+  color: var(--accent-text);
   text-underline-offset: 2px;
 }
 
@@ -230,7 +321,7 @@ code {
 /* --- Acessibilidade ------------------------------------------------------ */
 
 :focus-visible {
-  outline: 2px solid var(--accent-600);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
   border-radius: 4px;
 }

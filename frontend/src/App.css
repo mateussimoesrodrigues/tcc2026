@@ -18,13 +18,15 @@
 .app-nav {
   position: sticky;
   top: 0;
-  z-index: 20;
+  /* Acima da gaveta (30) e do fundo escurecido (25): o menu do perfil, que
+     vive dentro da barra, precisa ficar na frente quando a gaveta esta aberta. */
+  z-index: 35;
   display: flex;
   align-items: center;
   gap: 0.15rem;
   padding: 0 clamp(0.7rem, 3vw, 1.4rem);
   height: var(--nav-h);
-  background: var(--ink-950);
+  background: var(--chrome-bg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   overflow-x: auto;
   scrollbar-width: none;
@@ -80,7 +82,7 @@
   height: 100%;
   padding: 0 0.8rem;
   text-decoration: none;
-  color: var(--ink-300);
+  color: var(--chrome-text);
   font-weight: 500;
   font-size: 0.9rem;
   white-space: nowrap;
@@ -107,28 +109,196 @@
 
 .app-nav-usuario {
   font-family: var(--mono);
-  color: var(--ink-400);
+  color: var(--chrome-text-soft);
   font-size: 0.78rem;
   white-space: nowrap;
   padding-left: 0.75rem;
-  border-left: 1px solid var(--ink-800);
+  border-left: 1px solid var(--chrome-line);
   margin-left: 0.5rem;
 }
 
-.app-nav .link-button {
-  color: var(--ink-300);
-  font-size: 0.85rem;
-  text-decoration: none;
-  padding: 0.3rem 0.55rem;
-  margin-left: 0.35rem;
-  border: 1px solid var(--ink-800);
-  border-radius: var(--radius-sm);
+/* Perfil: bolinha com as iniciais + menu com o "Sair". O menu e position:
+   fixed (e nao absolute) porque a barra tem overflow-x: auto, que cortaria
+   qualquer coisa que descesse abaixo dela. */
+.app-perfil {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: 0.6rem;
 }
 
-.app-nav .link-button:hover {
+.app-perfil-botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: #fff;
-  border-color: var(--ink-700);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--accent-600);
+  border: 2px solid color-mix(in srgb, var(--teal) 50%, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.app-perfil-botao:hover,
+.app-perfil-botao[aria-expanded="true"] {
+  background: var(--accent-500);
+  border-color: var(--teal);
+}
+
+.app-perfil-menu {
+  position: fixed;
+  top: calc(var(--nav-h) + 6px);
+  right: clamp(0.7rem, 3vw, 1.4rem);
+  z-index: 40;
+  min-width: 220px;
+  max-width: calc(100vw - 1.4rem);
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-perfil-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 6px;
+  padding: 0.55rem 0.7rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-perfil-id strong,
+.app-perfil-id span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-perfil-id strong {
+  font-size: 0.9rem;
+  color: var(--ink-950);
+}
+
+.app-perfil-id span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Interruptor de tema: sol, chave e lua. A linha inteira e um botao
+   (menuitemcheckbox): o clique em qualquer ponto alterna, e o menu continua
+   aberto pra ver o efeito. A chave a direita (lua) = escuro. */
+.app-tema {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--text-soft);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.app-tema:hover {
+  background: var(--surface-sunken);
+}
+
+.app-tema svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: color var(--transition);
+}
+
+/* O icone do tema ativo acende; o outro fica apagado. */
+.app-tema[aria-checked="false"] .app-tema-sol,
+.app-tema[aria-checked="true"] .app-tema-lua {
+  color: var(--accent-text);
+}
+
+.app-tema-chave {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  background: var(--border-strong);
+  border-radius: var(--radius-pill);
+  transition: background var(--transition);
+}
+
+.app-tema[aria-checked="true"] .app-tema-chave {
+  background: var(--accent-600);
+}
+
+.app-tema-bola {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition);
+}
+
+.app-tema[aria-checked="true"] .app-tema-bola {
+  transform: translateX(18px);
+}
+
+.app-perfil-sair {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--ink-900);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.app-perfil-sair:hover {
+  background: var(--surface-sunken);
+}
+
+.app-perfil-sair svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Em tela estreita o nome some da barra (o menu do perfil ja o mostra). */
+@media (max-width: 520px) {
+  .app-nav-usuario {
+    display: none;
+  }
 }
 
 @media (max-width: 620px) {
@@ -163,7 +333,7 @@
   margin-right: 0.55rem;
   padding: 0;
   background: transparent;
-  color: var(--ink-300);
+  color: var(--chrome-text);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -173,7 +343,7 @@
 .app-menu-toggle:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
-  border-color: var(--ink-800);
+  border-color: var(--chrome-line);
 }
 
 .app-menu-toggle svg {
@@ -209,7 +379,7 @@
   width: 0;
   visibility: hidden;
   overflow: hidden;
-  background: var(--ink-950);
+  background: var(--chrome-bg);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   transition: width var(--transition), visibility var(--transition);
 }
@@ -237,7 +407,7 @@
   align-items: center;
   padding: 0.6rem 0.85rem;
   text-decoration: none;
-  color: var(--ink-300);
+  color: var(--chrome-text);
   font-weight: 500;
   font-size: 0.9rem;
   white-space: nowrap;
@@ -438,7 +608,7 @@ main {
   border: none;
   padding: 0.35rem 0.15rem;
   cursor: pointer;
-  color: var(--accent-700);
+  color: var(--accent-text);
   font: inherit;
   font-weight: 500;
   text-decoration: underline;
@@ -650,7 +820,7 @@ main {
 }
 
 .tabela-estoque tr.linha-baixa:hover {
-  background: color-mix(in srgb, var(--cinza-500) 15%, white);
+  background: color-mix(in srgb, var(--cinza-500) 15%, var(--surface));
 }
 
 /* Estoque baixo / ruptura: fundo cinza-azulado calmo + barra petroleo na
@@ -689,8 +859,8 @@ main {
   margin: 0 auto;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--ink-950);
-  border: 1px solid var(--ink-800);
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -913,7 +1083,7 @@ main {
 }
 
 .carrinho-item-qtd button:hover {
-  background: var(--ink-900);
+  background: var(--chrome-bg);
   color: var(--text-inverse);
 }
 
@@ -989,8 +1159,8 @@ main {
   color: #fff;
   margin: 1.25rem 0;
   padding: 1.6rem 1rem 1.4rem;
-  background: var(--ink-950);
-  border: 1px solid var(--ink-900);
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-line);
   border-radius: var(--radius-lg);
   overflow: hidden;
   font-variant-numeric: tabular-nums;
@@ -1752,7 +1922,7 @@ main {
 
 .grafico-linha {
   fill: none;
-  stroke: var(--accent-600);
+  stroke: var(--serie);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -1765,7 +1935,7 @@ main {
 }
 
 .grafico-ponto {
-  fill: var(--accent-600);
+  fill: var(--serie);
 }
 
 /* "Antes" em cinza-azulado com contorno (o cinza-400 sozinho tem 2,6:1 sobre
@@ -1852,7 +2022,7 @@ main {
 .badge-em-andamento.badge-pendente {
   background: var(--accent-50);
   border-color: var(--accent-200);
-  color: var(--accent-700);
+  color: var(--accent-text);
 }
 
 .variacao-positiva {
@@ -1890,6 +2060,10 @@ main {
   grid-template-columns: minmax(0, 17fr) minmax(0, 15fr);
   min-height: 100svh;
   font-family: "Inter", var(--sans);
+  /* Sempre claro: os tokens claros sao redeclarados aqui (index.css) e o
+     color-scheme impede controles nativos escuros dentro do login. */
+  color-scheme: light;
+  color: var(--text);
 }
 
 .login-painel-marca {
@@ -2350,7 +2524,7 @@ main {
 
 .preco-sugerido {
   font-weight: 600;
-  color: var(--accent-700);
+  color: var(--accent-text);
 }
 
 @media (max-width: 720px) {

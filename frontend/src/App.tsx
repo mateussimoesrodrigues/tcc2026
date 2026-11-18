@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import Scanner from "./cliente/pages/Scanner";
@@ -17,6 +17,7 @@ import ProtectedRoute from "./funcionario/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 
+import { useTema } from "./tema";
 import logoDark from "./assets/logo-dark.svg";
 import logoMark from "./assets/logo-mark.svg";
 
@@ -111,6 +112,128 @@ function IconeMenu({ aberto }: { aberto: boolean }) {
   );
 }
 
+// Iniciais do avatar: primeira letra do primeiro nome + primeira letra do
+// ultimo sobrenome ("Mateus Souza Simões" -> "MS"). Nome de uma palavra so
+// vira uma letra so ("Administrador" -> "A").
+function iniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  // Array.from: pega o caractere inteiro mesmo se for um par substituto.
+  const inicial = (palavra: string) => Array.from(palavra)[0].toLocaleUpperCase("pt-BR");
+  if (partes.length === 1) return inicial(partes[0]);
+  return inicial(partes[0]) + inicial(partes[partes.length - 1]);
+}
+
+function IconeSair() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9" />
+      <path d="M16 8l4 4-4 4M20 12H9" />
+    </svg>
+  );
+}
+
+function IconeSol() {
+  return (
+    <svg className="app-tema-sol" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" />
+    </svg>
+  );
+}
+
+function IconeLua() {
+  return (
+    <svg className="app-tema-lua" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z" />
+    </svg>
+  );
+}
+
+// Perfil no canto direito da barra: a bolinha com as iniciais abre um menu
+// com o nome, o email, o interruptor de tema e o "Sair". Fecha ao clicar
+// fora, com Esc e ao sair (alternar o tema NAO fecha: o efeito fica a vista).
+function MenuPerfil({ nome, email, onSair }: { nome: string; email: string; onSair: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const { tema, alternar } = useTema();
+  const raiz = useRef<HTMLDivElement>(null);
+  const botao = useRef<HTMLButtonElement>(null);
+  const itemTema = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    // Teclado: ao abrir, o foco vai pro primeiro item (o tema, e nao o "Sair":
+    // um Enter sem querer troca o tema em vez de derrubar a sessao).
+    itemTema.current?.focus();
+    function aoClicarFora(e: PointerEvent) {
+      if (raiz.current && !raiz.current.contains(e.target as Node)) setAberto(false);
+    }
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setAberto(false);
+        botao.current?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", aoClicarFora);
+    window.addEventListener("keydown", aoTeclar);
+    return () => {
+      document.removeEventListener("pointerdown", aoClicarFora);
+      window.removeEventListener("keydown", aoTeclar);
+    };
+  }, [aberto]);
+
+  return (
+    <div className="app-perfil" ref={raiz}>
+      <button
+        ref={botao}
+        type="button"
+        className="app-perfil-botao"
+        onClick={() => setAberto((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        aria-label={`Menu do perfil de ${nome}`}
+      >
+        {iniciais(nome)}
+      </button>
+      {aberto && (
+        <div className="app-perfil-menu" role="menu">
+          <div className="app-perfil-id">
+            <strong>{nome}</strong>
+            <span>{email}</span>
+          </div>
+          <button
+            ref={itemTema}
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={tema === "escuro"}
+            aria-label="Modo escuro"
+            className="app-tema"
+            onClick={alternar}
+          >
+            <IconeSol />
+            <span className="app-tema-chave" aria-hidden="true">
+              <span className="app-tema-bola" />
+            </span>
+            <IconeLua />
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="app-perfil-sair"
+            onClick={() => {
+              setAberto(false);
+              onSair();
+            }}
+          >
+            <IconeSair />
+            Sair
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConsoleShell() {
   const { funcionario, carregando, logout } = useAuth();
   const [menuAberto, setMenuAberto] = useState(estadoInicialMenu);
@@ -172,9 +295,7 @@ function ConsoleShell() {
         {logado && (
           <>
             <span className="app-nav-usuario">{funcionario.nome}</span>
-            <button type="button" className="link-button" onClick={logout}>
-              Sair
-            </button>
+            <MenuPerfil nome={funcionario.nome} email={funcionario.email} onSair={logout} />
           </>
         )}
       </header>
