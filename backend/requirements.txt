@@ -19,4 +19,5 @@ paho-mqtt==2.1.0  # push de preco pros displays OLED da variante de demonstracao
 truststore==0.10.4  # usa o certificate store do SO (Windows/macOS) em vez do bundle do certifi --
                     # necessario em maquinas com AV/proxy corporativo que faz inspecao SSL e
                     # instala uma CA root propria so no store do sistema (ver app/main.py)
+pandas==2.2.3  # so o seed (app/seed.py) usa, e com import tardio: a API em producao nao carrega pandas
 pytest==8.3.4

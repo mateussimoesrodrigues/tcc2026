@@ -76,10 +76,16 @@ class Settings(BaseSettings):
     # (scripts/avaliar_llm.py): informar o limite reduz resposta invalida?
     informar_piso_no_prompt: bool = True
 
-    # Marca os dados de venda/promocao como simulados (gerados por
-    # `app/seed.py`, nao pela operacao real da loja). Alimenta o banner de
-    # aviso na tela de indicadores -- honestidade metodologica pro TCC.
+    # Marca os dados de venda como NAO sendo a operacao real da loja (gerados
+    # por `app/seed.py`). Alimenta o aviso na tela de indicadores --
+    # honestidade metodologica pro TCC.
     dados_simulados: bool = True
+    # De onde vem o dado. "online_retail_ii_derivado": vendas (quantidade e
+    # preco por produto e dia) REAIS do dataset Online Retail II (UCI);
+    # custo, estoque, categoria e datas DERIVADOS pelo seed (ver o cabecalho
+    # de `app/seed.py`). Exposto em `/analytics/resumo` pro frontend poder
+    # dizer isso ao usuario.
+    origem_dados: str = "online_retail_ii_derivado"
 
     # Job periodico de limpeza (expirar promocoes vencidas e pedidos
     # abandonados). Nao gera sugestoes -- geracao so acontece no clique em

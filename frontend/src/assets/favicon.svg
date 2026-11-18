@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Precix.AI">
+  <title>Precix.AI</title>
+  <rect width="64" height="64" rx="14" fill="#0B1220"/>
+  <path d="M19 21 L45 43" stroke="#14B8A6" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <path d="M45 21 L19 43" stroke="#A3E635" stroke-width="7" stroke-linecap="round" fill="none"/>
+</svg>

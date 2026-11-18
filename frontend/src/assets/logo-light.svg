@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="80" viewBox="0 0 340 80" role="img" aria-label="Precix.AI">
+  <title>Precix.AI</title>
+  <path d="M16 22 L50 58" stroke="#14B8A6" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M50 22 L16 58" stroke="#65A30D" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <text x="72" y="52" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="38" font-weight="500" letter-spacing="-0.5">
+    <tspan fill="#0F766E">Preci</tspan><tspan fill="#65A30D">x</tspan><tspan fill="#64748B" font-size="24" font-weight="400">.AI</tspan>
+  </text>
+</svg>

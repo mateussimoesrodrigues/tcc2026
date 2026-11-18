@@ -131,6 +131,8 @@ class ResumoAnalyticsRead(BaseModel):
     # Espelha Settings.dados_simulados: liga o aviso de que os numeros vem
     # do seed, nao da operacao real da loja.
     dados_simulados: bool
+    # Espelha Settings.origem_dados: diz de onde vem o dado (ver o seed).
+    origem_dados: str
     receita_periodo: Decimal
     margem_periodo: Decimal
     unidades_periodo: int

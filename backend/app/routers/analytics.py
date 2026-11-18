@@ -101,4 +101,7 @@ def resumo(
         dados = analytics_service.resumo(db, desde=inicio, ate=fim)
     else:
         dados = analytics_service.resumo(db, janela_dias=janela_dias)
-    return ResumoAnalyticsRead(dados_simulados=get_settings().dados_simulados, **dados)
+    settings = get_settings()
+    return ResumoAnalyticsRead(
+        dados_simulados=settings.dados_simulados, origem_dados=settings.origem_dados, **dados
+    )

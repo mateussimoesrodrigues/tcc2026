@@ -54,32 +54,110 @@ para conferir se está de pé e qual banco está em uso).
 
 #### Popular o banco (seed)
 
+O seed **deriva** o catálogo e as vendas do dataset público
+[Online Retail II (UCI)](https://archive.ics.uci.edu/dataset/502/online+retail+ii)
+— o histórico de um atacadista de presentes do Reino Unido (dez/2009 a
+dez/2011). Baixe o CSV você mesmo; o script **não baixa nada** e, se o
+arquivo não existir, para sem tocar no banco.
+
 ```bash
-python -m app.seed                      # padrão: 90 dias, semente 42
-python -m app.seed --seed 7 --dias 60   # outra amostra (para checar robustez)
+python -m app.seed                          # lê o CSV de CAMINHO_CSV (topo de app/seed.py)
+python -m app.seed --csv "D:/dados/online_retail_II.csv" --seed 7
+python -m app.seed --conferir               # só lê o banco e resume o que o seed deixou lá
 ```
 
-Popula (ou repopula do zero — o script limpa as tabelas antes) o catálogo
-com os produtos reais da loja + itens adicionais das mesmas marcas, e
-**simula 90 dias de operação**: demanda diária por produto (Poisson, com
-fator de fim de semana e de quinzena), promoções históricas com resposta
-de demanda ao desconto, e cada venda virando `pedido` + `pedido_item`
-(com o preço praticado) + `movimentacao_estoque`.
+> ⚠️ **O seed SUBSTITUI o conteúdo do banco** (produtos, estoque, pedidos,
+> histórico de preços, sugestões, displays, categorias e funcionários). O
+> aviso é impresso antes de apagar, junto com o banco de destino. Toda a
+> leitura e derivação roda em memória *antes*: CSV ausente ou erro na
+> derivação não apagam nada.
 
-> ⚠️ **Os dados de venda, pedido e promoção são simulados.** A loja é nova
-> e não tem histórico acumulado — o mesmo problema de *cold start* que
-> justifica o motor de promoções ser regras + LLM em vez de um modelo
-> treinado. A simulação existe para a camada de indicadores ter o que
-> exibir e para o sistema ser demonstrável de ponta a ponta; ela **não**
-> mede a eficácia real do sistema na loja. A rotulagem aparece em quatro
-> pontos: prefixo `[simulação de seed]` na justificativa das sugestões,
-> `sinais_detectados["origem_dados"] = "seed_simulado"`, a variável
-> `DADOS_SIMULADOS` (banner na tela de Indicadores) e o aviso impresso ao
-> fim do script. Quem quer medir o LLM com dado **real** usa o harness de
-> avaliação (abaixo), que não depende da loja.
+Parâmetros editáveis no topo de `app/seed.py`: `CAMINHO_CSV`, `N_PRODUTOS=100`,
+`JANELA_DIAS=180`, `FAIXA_MARGEM=(0.40, 0.50)`, `SEED=42`,
+`FATOR_NORMALIZACAO=10.0` e o dicionário `CATEGORIAS_PALAVRAS_CHAVE`.
+
+**Metodologia** (mesma semente + mesmo CSV = mesmo resultado, o que permite
+citar os parâmetros na monografia):
+
+1. **Limpeza.** Remove cancelamentos (fatura `C…`), `Quantity ≤ 0` e
+   `UnitPrice ≤ 0`, descrição vazia, `StockCode` que não é produto (padrão
+   aceito: 5 dígitos + até 2 letras — descarta `POST`, `DOT`, `M`,
+   `BANK CHARGES`, `AMAZONFEE`, `CRUK`, `gift_*`, `DCGS*`…) e linhas com mais
+   de `QTD_MAX_POR_LINHA=500` unidades. O último filtro importa: há pedidos
+   digitados errado e cancelados depois (80.995 e 74.215 unidades numa linha
+   só); o cancelamento sai, mas a venda original ficaria e elevaria dois
+   produtos ao top 10.
+2. **Catálogo.** Top 100 `StockCode` por volume total vendido no dataset
+   inteiro. Produto do top que não vendeu nada na janela (descontinuado) fica
+   de fora, então o catálogo pode ter 99 itens.
+3. **Janela.** Últimos 180 dias de atividade do dataset, **deslocados para
+   terminar hoje**, com o mesmo deslocamento em todas as vendas (o
+   espaçamento relativo é preservado). Consequências: o dia da semana muda
+   (o atacadista não vendia aos sábados, e esse vazio cai noutro dia) e a
+   sazonalidade do dataset (pico de Natal, em out–nov de 2011) aparece
+   deslocada em relação ao calendário sazonal do motor.
+4. **Pedidos.** Um `pedido` por (produto, dia), com um `pedido_item` (quantidade
+   somada e preço médio ponderado do dia) e uma saída de `movimentacao_estoque`
+   — o mesmo grão de `services/daily_sales_service.py`. O recorte tem ~42 mil
+   linhas de fatura; nesse grão ficam ~12 mil pedidos, que cabem no free tier
+   do Neon sem perder quantidade nem receita. Todos entram como
+   `conferido_no_caixa` (são vendas concluídas; é o status que a camada de
+   indicadores conta). Linhas com preço fora de `[0,75×; 2,5×]` da mediana do
+   produto são descartadas (outra tabela de preços; o piso fica acima do custo
+   estimado mais alto, então nenhuma venda sai abaixo do custo).
+5. **Preço em R$.** `preço em GBP × FATOR_NORMALIZACAO` (≈ 7 de câmbio × ≈ 1,4
+   de markup atacado→varejo; é uma escala, não conversão cambial). Itens de
+   atacado muito baratos recebem fator maior, só para eles, até o preço de
+   tabela chegar a `PRECO_MINIMO_REAL=R$ 2,50` — o preço relativo entre as
+   vendas do mesmo item é preservado. Preço de tabela = mediana na janela.
+6. **Custo (estimativa).** `custo = preço / (1 + margem)`, `margem` sorteada em
+   `[0,40; 0,50]` por produto. É *markup sobre o custo*; o sistema mede
+   margem *sobre o preço* (`(preço − custo) / preço`), que aqui fica entre
+   28,6% e 33,3% — **abaixo da meta de 35%** de `MARGEM_ALVO_PERCENTUAL`, então
+   a tela de Precificação lista todo o catálogo como margem defasada.
+7. **Estoque (estimativa).** O estoque de hoje sai do giro real dos últimos 90
+   dias (a mesma janela das regras do motor) e de um cenário por produto:
+   *baixo* (~8% dos produtos, no mínimo 5, abaixo do ponto de reposição —
+   dispara o alerta), *excesso* (~25%, cobertura acima do limiar de "estoque
+   alto" — vira candidato a promoção) e *saudável* (o resto). O ponto de reposição
+   (`quantidade_minima`) é 7 dias de giro, porque o limite global de 5 unidades
+   não faz sentido com giro de dezenas de unidades por dia. O estoque inicial é
+   `estoque de hoje + tudo que foi vendido na janela` (uma entrada, com custo
+   e observação "DERIVADO"), então o saldo das movimentações fecha exatamente.
+8. **Categoria (derivada).** Palavras-chave no nome **original em inglês**, na
+   ordem de `CATEGORIAS_PALAVRAS_CHAVE` (a primeira que casa vence); sem match,
+   `Diversos`. O código de barras do produto é o `StockCode` (tipo `CODE128`).
+   **Nome em português.** O nome gravado em `produto.nome` (e no snapshot dos
+   itens de pedido) é uma tradução manual por `StockCode`, em
+   `app/seed_traducoes.py` (glossário no topo do arquivo). `StockCode` sem
+   tradução cadastrada mantém o nome original em inglês, então outro CSV ou
+   `--produtos` maior que 99 não quebram o seed.
+9. **Histórico de preços.** Um registro inicial por produto (preço de tabela).
+   A evolução real do preço fica nos `preco_unitario_snapshot` dos itens.
+
+> ⚠️ **Estes dados não são a operação da loja.** O que é **real** (do
+> dataset): quais produtos mais vendem, e a quantidade e o preço praticado
+> por produto e dia (preço em GBP, escalado para R$). O que é **derivado**
+> (estimativa deste script): custo, estoque, quantidade mínima, categoria,
+> os nomes em português (tradução manual), as datas (janela deslocada) e a
+> escala de preço. As quantidades
+> são de **atacado** (mediana de 8 unidades por linha de fatura), muito acima
+> do que uma loja de armarinho vende. Não há promoções nem sugestões
+> históricas: nada disso existe no dataset, e o seed antigo as simulava com
+> uma elasticidade inventada — o que contradiria vender como "real". Elas
+> passam a nascer do motor (botão "Gerar sugestões agora") a partir dos
+> sinais reais. A origem é rotulada em `origem_dados =
+> "online_retail_ii_derivado"` (impresso ao fim do script, `ORIGEM_DADOS` no
+> `.env` e `/analytics/resumo`), no prefixo `OR` do `numero_pedido` e na
+> observação das entradas de estoque. A tela de Indicadores **não exibe mais
+> o banner** de dado simulado (a classe CSS `.aviso-simulado` ficou sem uso
+> desde o commit `eb74d50`); o campo `origem_dados` da API está disponível
+> para reativá-lo.
 >
-> A simulação é determinística: a mesma semente reproduz exatamente o
-> mesmo dataset, o que permite citar os parâmetros na monografia.
+> Com `ENABLE_DAILY_SALES_SIMULATOR=true`, o job diário continua acrescentando
+> vendas **simuladas** (rotuladas `simulacao_diaria`) depois da janela
+> derivada; desligue-o se quiser só dado do dataset. A versão anterior do seed
+> (catálogo da planilha da loja + 90 dias simulados) está no histórico do git.
 
 #### Avaliação do LLM (evidência experimental)
 
