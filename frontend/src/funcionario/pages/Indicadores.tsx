@@ -374,7 +374,9 @@ export default function Indicadores() {
                 </td>
                 <td>
                   {p.promocao_ativa && <span className="badge-em-andamento">em promoção</span>}
-                  {p.tem_sugestao_pendente && <span className="badge-em-andamento">sugestão pendente</span>}
+                  {p.tem_sugestao_pendente && (
+                    <span className="badge-em-andamento badge-pendente">sugestão pendente</span>
+                  )}
                 </td>
               </tr>
             ))}

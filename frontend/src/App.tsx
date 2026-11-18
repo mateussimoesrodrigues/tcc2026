@@ -17,20 +17,19 @@ import ProtectedRoute from "./funcionario/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 
+import logoDark from "./assets/logo-dark.svg";
+import logoMark from "./assets/logo-mark.svg";
+
 import "./App.css";
 
-// Marca da barra superior: barras ascendentes (preco/volume) + nome.
-// aria-hidden no SVG porque o nome ao lado ja e o rotulo textual.
-function Marca({ contexto }: { contexto?: string }) {
+// Marca da barra superior (fundo escuro, por isso a logo "dark"). Em tela
+// estreita o CSS troca a logo completa so pelo simbolo (ver .app-brand-logo
+// e .app-brand-mark no App.css); o simbolo e decorativo, entao alt vazio.
+function Marca() {
   return (
     <div className="app-brand">
-      <svg className="app-brand-mark" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="1.5" y="13" width="5" height="8" rx="1" opacity="0.55" />
-        <rect x="9.5" y="8" width="5" height="13" rx="1" opacity="0.8" />
-        <rect x="17.5" y="3" width="5" height="18" rx="1" />
-      </svg>
-      <span className="app-brand-nome">Precificação</span>
-      {contexto && <span className="app-nav-tag">{contexto}</span>}
+      <img className="app-brand-logo" src={logoDark} alt="Precix.AI" />
+      <img className="app-brand-mark" src={logoMark} alt="" />
     </div>
   );
 }
@@ -113,7 +112,7 @@ function IconeMenu({ aberto }: { aberto: boolean }) {
 }
 
 function ConsoleShell() {
-  const { funcionario, logout } = useAuth();
+  const { funcionario, carregando, logout } = useAuth();
   const [menuAberto, setMenuAberto] = useState(estadoInicialMenu);
 
   const fecharSeGaveta = useCallback(() => {
@@ -147,9 +146,14 @@ function ConsoleShell() {
   // renderiza so a barra do topo e o formulario.
   const logado = funcionario !== null;
   const mostrarMenu = logado && menuAberto;
+  // Sem sessao (e ja sem carregar): so existe a tela de login, que e uma
+  // tela cheia dividida e dispensa a barra do topo e o padding do <main>.
+  const semSessao = !logado && !carregando;
 
   return (
-    <div className={`app-shell app-console${mostrarMenu ? " menu-aberto" : ""}`}>
+    <div
+      className={`app-shell app-console${mostrarMenu ? " menu-aberto" : ""}${semSessao ? " sem-sessao" : ""}`}
+    >
       <header className="app-nav">
         {logado && (
           <button
@@ -163,7 +167,7 @@ function ConsoleShell() {
             <IconeMenu aberto={menuAberto} />
           </button>
         )}
-        <Marca contexto="console" />
+        <Marca />
         <span className="app-nav-spacer" />
         {logado && (
           <>

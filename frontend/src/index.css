@@ -1,56 +1,94 @@
 /* ===========================================================================
-   Tokens e base.
+   Tokens e base -- identidade Precix.AI.
 
-   Identidade: painel de operacao. Neutros frios de grafite, um unico azul
-   de sinal para acao/foco, numeros sempre em monoespacada tabular. Cantos
-   retos, hairline no lugar de sombra, densidade alta -- a referencia sao
-   ferramentas internas (terminal de PDV, console de monitoramento), nao
-   landing page.
+   Paleta oficial (os 8 hexadecimais abaixo sao os unicos valores de cor da
+   marca; todo o resto e MISTURA deles via color-mix, nunca um matiz novo):
 
-   Tema fixo em claro: o app roda no balcao e no celular do cliente, entao
-   previsibilidade vale mais que seguir prefers-color-scheme.
+     petroleo       #0F766E   primaria: acao, link, serie principal dos graficos
+     teal           #14B8A6   secundaria: foco, marcador de item ativo (fundo escuro)
+     lima           #A3E635   destaque, SO sobre fundo escuro (logo, etiqueta do navbar)
+     lima-escuro    #65A30D   o mesmo destaque quando o fundo e claro (promocao)
+     grafite        #0B1220   fundo escuro e texto principal
+     cinza-500      #64748B   texto secundario sobre claro
+     cinza-400      #94A3B8   texto secundario sobre escuro
+     superficie     #F1F5F9   fundo claro das telas
+
+   Contraste (WCAG): petroleo sobre branco 5,5:1 e branco sobre petroleo 5,5:1
+   (texto e botao); cinza-500 sobre branco 4,8:1; lima sobre grafite 12:1.
+   Por isso o teal NAO e usado como texto em fundo claro (2,5:1) -- so em
+   fundo escuro ou como borda/foco -- e o lima vibrante nunca aparece em
+   fundo claro: la entra o lima-escuro (3,1:1, so grafico/selo grande) e, para
+   texto pequeno, uma mistura mais escura dele (--promo-ink, 5,7:1).
+
+   Tema fixo em claro: o app roda no balcao e no celular, entao
+   previsibilidade vale mais que seguir prefers-color-scheme. A barra do
+   topo e a lateral sao escuras (grafite) e carregam a logo "dark".
    =========================================================================== */
 
 :root {
-  /* Grafite -- estrutura, texto e superficies escuras */
-  --ink-950: #0c1017;
-  --ink-900: #151a23;
-  --ink-800: #232a36;
-  --ink-700: #3a4352;
-  --ink-600: #4e5867;
-  --ink-500: #67707f;
-  --ink-400: #8b94a2;
-  --ink-300: #b3bac5;
+  /* --- Paleta oficial ----------------------------------------------------- */
+  --petroleo: #0f766e;
+  --teal: #14b8a6;
+  --lima: #a3e635;
+  --lima-escuro: #65a30d;
+  --grafite: #0b1220;
+  --cinza-500: #64748b;
+  --cinza-400: #94a3b8;
+  --superficie-clara: #f1f5f9;
 
-  /* Azul de sinal -- acao, foco, serie principal dos graficos */
-  --accent-50: #eff3ff;
-  --accent-100: #dfe6ff;
-  --accent-200: #c4d0fe;
-  --accent-300: #9daefb;
-  --accent-400: #7186f6;
-  --accent-500: #4c62ee;
-  --accent-600: #2f45db;
-  --accent-700: #2434ac;
-  --accent-800: #1e2b85;
+  /* Escala de grafite (do fundo escuro ao cinza texto), misturando grafite e
+     cinza-500. Estrutura, texto e superficies escuras. */
+  --ink-950: var(--grafite);
+  --ink-900: color-mix(in srgb, var(--grafite) 92%, var(--cinza-500));
+  --ink-800: color-mix(in srgb, var(--grafite) 80%, var(--cinza-500));
+  --ink-700: color-mix(in srgb, var(--grafite) 62%, var(--cinza-500));
+  --ink-600: color-mix(in srgb, var(--grafite) 40%, var(--cinza-500));
+  --ink-500: var(--cinza-500);
+  --ink-400: var(--cinza-400);
+  --ink-300: color-mix(in srgb, var(--cinza-400) 62%, var(--superficie-clara));
 
-  /* Superficies (cinza levemente azulado, nao bege) */
-  --bg: #f4f6fa;
+  /* Petroleo -- acao, foco, serie principal dos graficos. O teal e o "400":
+     marcador de item ativo sobre o grafite. */
+  --accent-50: color-mix(in srgb, var(--petroleo) 6%, white);
+  --accent-100: color-mix(in srgb, var(--petroleo) 12%, white);
+  --accent-200: color-mix(in srgb, var(--teal) 30%, white);
+  --accent-300: color-mix(in srgb, var(--teal) 60%, white);
+  --accent-400: var(--teal);
+  --accent-500: color-mix(in srgb, var(--petroleo) 70%, var(--teal));
+  --accent-600: var(--petroleo);
+  --accent-700: color-mix(in srgb, var(--petroleo) 82%, var(--grafite));
+  --accent-800: color-mix(in srgb, var(--petroleo) 62%, var(--grafite));
+
+  /* Lima -- promocao e preco que cai. Funcional, nunca decorativo. Em fundo
+     claro usa o lima-escuro; o --promo-vivid so vai sobre grafite. */
+  --promo: var(--lima-escuro);
+  --promo-ink: color-mix(in srgb, var(--lima-escuro) 60%, var(--grafite));
+  --promo-bg: color-mix(in srgb, var(--lima-escuro) 12%, white);
+  --promo-border: color-mix(in srgb, var(--lima-escuro) 38%, white);
+  --promo-vivid: var(--lima);
+
+  /* Superficies */
+  --bg: var(--superficie-clara);
   --surface: #ffffff;
-  --surface-muted: #f2f5f9;
-  --surface-sunken: #eaeef4;
-  --border: #e2e7ef;
-  --border-strong: #cbd3e0;
+  --surface-muted: color-mix(in srgb, var(--superficie-clara) 50%, white);
+  --surface-sunken: color-mix(in srgb, var(--superficie-clara) 82%, var(--cinza-400));
+  --border: color-mix(in srgb, var(--cinza-400) 30%, white);
+  --border-strong: color-mix(in srgb, var(--cinza-400) 65%, white);
 
-  --text: #1d2430;
-  --text-muted: #5b6575;
-  --text-soft: #8b94a2;
+  /* Texto: o muted e o cinza-500 escurecido um pouco, porque sobre o fundo
+     #F1F5F9 o cinza-500 puro cai para 4,3:1 (abaixo do AA de texto pequeno). */
+  --text: var(--ink-900);
+  --text-muted: color-mix(in srgb, var(--cinza-500) 82%, var(--grafite));
+  --text-soft: var(--cinza-500);
   --text-inverse: #ffffff;
 
-  /* Estados */
-  --success: #0d7a52;
-  --success-strong: #095c3d;
-  --success-bg: #e7f5ef;
-  --success-border: #bce0d1;
+  /* Estados. Sucesso e da familia do petroleo (a marca ja e verde-azulada).
+     Alerta e perigo seguem ambar e vermelho: a paleta nao tem cor de erro,
+     e sinalizar falha com cor de marca esconderia o problema. */
+  --success: var(--accent-700);
+  --success-strong: var(--accent-800);
+  --success-bg: var(--accent-50);
+  --success-border: var(--accent-200);
 
   --warning: #8a5a06;
   --warning-strong: #6b4504;
@@ -62,33 +100,39 @@
   --danger-bg: #fdecec;
   --danger-border: #f4cbcd;
 
-  /* Destaque neutro (cinza da mesma familia das superficies). Usado no
-     estoque baixo: e uma condicao rotineira, que marca varias linhas da
-     tabela ao mesmo tempo -- com o ambar de --warning a tela inteira
-     ficava amarela e o aviso perdia forca. O cinza destaca a linha sem
-     gritar, e deixa o ambar/vermelho pros avisos excepcionais. */
-  --neutral: #4c5563;
-  --neutral-strong: #333b47;
-  --neutral-bg: #eaedf2;
-  --neutral-border: #d2d8e1;
+  /* Destaque calmo (estoque baixo, ruptura, display atrasado): uma condicao
+     rotineira que marca varias linhas da tabela ao mesmo tempo. Com ambar a
+     tela inteira ficava amarela e o aviso perdia forca; um cinza-azulado
+     destaca a linha sem gritar, e o ambar/vermelho ficam pros avisos
+     excepcionais. A barra lateral da linha e em petroleo (ver .linha-baixa). */
+  --neutral: var(--cinza-500);
+  --neutral-strong: color-mix(in srgb, var(--cinza-500) 70%, var(--grafite));
+  --neutral-bg: color-mix(in srgb, var(--cinza-500) 9%, white);
+  --neutral-border: color-mix(in srgb, var(--cinza-400) 55%, white);
 
-  /* Sombras neutras e discretas: a hierarquia vem da borda, nao do blur */
-  --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.07);
-  --shadow-lg: 0 14px 34px rgba(15, 23, 42, 0.11);
+  /* Sombras suaves, tintadas de grafite: a hierarquia vem da borda e de um
+     blur curto, nao de sombra pesada. */
+  --shadow-xs: 0 1px 1px rgba(11, 18, 32, 0.04);
+  --shadow-sm: 0 1px 3px rgba(11, 18, 32, 0.07);
+  --shadow-md: 0 6px 18px rgba(11, 18, 32, 0.08);
+  --shadow-lg: 0 18px 40px rgba(11, 18, 32, 0.14);
 
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-lg: 10px;
+  /* Cantos arredondados: campo e botao (sm), tabela e filtro (base), card (lg). */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
   --radius-pill: 999px;
+
+  /* Altura da barra do topo. A lateral, a gaveta e o fundo escurecido se
+     posicionam a partir dela. */
+  --nav-h: 56px;
 
   --sans: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
   --display: var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
 
-  --ring: 0 0 0 3px var(--accent-200);
-  --transition: 130ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--teal) 32%, transparent);
+  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 
   font-family: var(--sans);
   font-size: 15.5px;
@@ -113,14 +157,6 @@ body {
   margin: 0;
   min-height: 100svh;
   background-color: var(--bg);
-  /* Malha tecnica de 28px, quase invisivel (2.5% de opacidade). Tira o
-     chapado do fundo solido e da uma referencia de alinhamento sem virar
-     textura decorativa. */
-  background-image:
-    linear-gradient(to right, rgba(35, 42, 54, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(35, 42, 54, 0.025) 1px, transparent 1px);
-  background-size: 28px 28px;
-  background-attachment: fixed;
 }
 
 #root {
@@ -135,20 +171,20 @@ h1,
 h2,
 h3 {
   font-family: var(--display);
-  color: var(--ink-900);
+  color: var(--ink-950);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
 h1 {
-  font-size: clamp(1.5rem, 1.3rem + 0.9vw, 1.85rem);
-  line-height: 1.2;
-  margin: 0 0 0.35rem;
+  font-size: clamp(1.55rem, 1.3rem + 1vw, 2rem);
+  line-height: 1.15;
+  margin: 0 0 0.4rem;
 }
 
 h2 {
-  font-size: 1.18rem;
+  font-size: 1.2rem;
   line-height: 1.3;
   margin: 0 0 0.5rem;
 }
@@ -169,7 +205,7 @@ a {
 
 strong {
   font-weight: 600;
-  color: var(--ink-900);
+  color: var(--ink-950);
 }
 
 /* Numero e dinheiro em qualquer lugar: mesma largura de digito, para as
@@ -184,8 +220,8 @@ time {
 code {
   font-family: var(--mono);
   font-size: 0.86em;
-  padding: 0.12em 0.4em;
-  border-radius: 3px;
+  padding: 0.12em 0.45em;
+  border-radius: 6px;
   background: var(--surface-muted);
   border: 1px solid var(--border);
   color: var(--ink-800);
@@ -196,7 +232,7 @@ code {
 :focus-visible {
   outline: 2px solid var(--accent-600);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 /* Respeita quem pediu menos animacao no sistema (a11y): mantem tudo
