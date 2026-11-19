@@ -54,9 +54,11 @@ export default function Login() {
       <section className="login-painel-marca">
         <img className="login-logo" src={logoDark} alt="Precix.AI" />
         <p className="login-headline">
-          Preço certo,
+          Sistema Inteligente para  
           <br />
-          na hora certa.
+          otimização de processos 
+          <br />
+          no varejo físico
         </p>
         <p className="login-descricao">
           Gestão de precificação com IA para o varejo físico — do estoque ao display da prateleira.
