@@ -153,6 +153,8 @@
   /* Altura da barra do topo. A lateral, a gaveta e o fundo escurecido se
      posicionam a partir dela. */
   --nav-h: 56px;
+  /* Largura da coluna lateral (icone + nome) no desktop. */
+  --sidebar-w: 84px;
 
   --sans: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
   --display: var(--sans);

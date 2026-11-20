@@ -5,7 +5,6 @@ import Scanner from "./cliente/pages/Scanner";
 import Carrinho from "./cliente/pages/Carrinho";
 import Checkout from "./cliente/pages/Checkout";
 import Login from "./funcionario/pages/Login";
-import Caixa from "./funcionario/pages/Caixa";
 import Indicadores from "./funcionario/pages/Indicadores";
 import Promocoes from "./funcionario/pages/Promocoes";
 import Produtos from "./funcionario/pages/Produtos";
@@ -61,43 +60,83 @@ function ClienteLayout() {
   );
 }
 
+// Icones do menu lateral (24x24, traco). Ficam aqui, junto da lista, porque
+// so o menu os usa.
+const ICONES_MENU = {
+  produtos: (
+    <>
+      <path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z" />
+      <path d="M3.5 7.5L12 12l8.5-4.5M12 12v9" />
+    </>
+  ),
+  entradas: (
+    <>
+      <path d="M12 3.5v10M8 9.5l4 4 4-4" />
+      <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" />
+    </>
+  ),
+  margens: (
+    <>
+      <path d="M19 5L5 19" />
+      <circle cx="7.5" cy="7.5" r="2.2" />
+      <circle cx="16.5" cy="16.5" r="2.2" />
+    </>
+  ),
+  promocoes: (
+    <>
+      <path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <circle cx="7.5" cy="7.5" r="1.2" />
+    </>
+  ),
+  indicadores: <path d="M5 20v-7M12 20V5M19 20v-10" />,
+  historico: (
+    <>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5" />
+      <path d="M3.5 3.5v5h5M12 8v4.5l3 1.8" />
+    </>
+  ),
+  displays: (
+    <>
+      <rect x="3" y="4.5" width="18" height="12" rx="2" />
+      <path d="M8.5 20h7M12 16.5V20" />
+    </>
+  ),
+};
+
 // Itens do menu lateral do console. Em lista (e nao em JSX solto) porque
 // o mesmo array vira os links e o alvo do fechamento automatico no mobile.
-// "Caixa" vem primeiro: e a tela mais usada no balcao, atendendo cliente
-// atras de cliente. `end` so em Produtos, que mora na rota indice "/" --
+// `end` so em Produtos, que mora na rota indice "/" --
 // sem ele o link ficaria ativo em todas as outras.
-const MENU_FUNCIONARIO: { to: string; rotulo: string; end?: boolean }[] = [
-  { to: "/caixa", rotulo: "Caixa" },
-  { to: "/", rotulo: "Produtos", end: true },
-  { to: "/entradas", rotulo: "Entradas" },
-  { to: "/precificacao", rotulo: "Margens" },
-  { to: "/promocoes", rotulo: "Promoções" },
-  { to: "/indicadores", rotulo: "Indicadores" },
-  { to: "/historico-precos", rotulo: "Histórico" },
-  { to: "/displays", rotulo: "Displays" },
+const MENU_FUNCIONARIO: {
+  to: string;
+  rotulo: string;
+  icone: keyof typeof ICONES_MENU;
+  end?: boolean;
+}[] = [
+  { to: "/", rotulo: "Produtos", icone: "produtos", end: true },
+  { to: "/entradas", rotulo: "Entradas", icone: "entradas" },
+  { to: "/precificacao", rotulo: "Margens", icone: "margens" },
+  { to: "/promocoes", rotulo: "Promoções", icone: "promocoes" },
+  { to: "/indicadores", rotulo: "Indicadores", icone: "indicadores" },
+  { to: "/historico-precos", rotulo: "Histórico", icone: "historico" },
+  { to: "/displays", rotulo: "Displays", icone: "displays" },
 ];
 
-// Abaixo desta largura a barra lateral vira gaveta sobreposta (com fundo
-// escurecido) em vez de dividir espaco com o conteudo. Precisa casar com o
-// mesmo valor no @media de .app-sidebar no App.css.
+// Acima desta largura a barra lateral e uma coluna estreita (icone + nome)
+// sempre visivel. Abaixo, vira gaveta sobreposta (com fundo escurecido) que
+// o hamburguer abre. Precisa casar com o @media de .app-sidebar no App.css.
 const LARGURA_GAVETA = "(max-width: 900px)";
-const CHAVE_MENU = "console:menu-aberto";
 
-function ehGaveta() {
-  return window.matchMedia(LARGURA_GAVETA).matches;
-}
-
-// Lembra a escolha entre sessoes: quem trabalha no balcao com a tela
-// pequena deixa o menu fechado o dia todo e nao quer reabrir/refechar a
-// cada F5. Sem preferencia salva, abre no desktop e fecha na gaveta.
-function estadoInicialMenu() {
-  try {
-    const salvo = localStorage.getItem(CHAVE_MENU);
-    if (salvo !== null) return salvo === "true";
-  } catch {
-    // Modo anonimo / storage bloqueado: cai no padrao por largura.
-  }
-  return !ehGaveta();
+// Acompanha o breakpoint da gaveta ao redimensionar a janela.
+function useGaveta() {
+  const [gaveta, setGaveta] = useState(() => window.matchMedia(LARGURA_GAVETA).matches);
+  useEffect(() => {
+    const consulta = window.matchMedia(LARGURA_GAVETA);
+    const aoMudar = (e: MediaQueryListEvent) => setGaveta(e.matches);
+    consulta.addEventListener("change", aoMudar);
+    return () => consulta.removeEventListener("change", aoMudar);
+  }, []);
+  return gaveta;
 }
 
 function IconeMenu({ aberto }: { aberto: boolean }) {
@@ -236,34 +275,23 @@ function MenuPerfil({ nome, email, onSair }: { nome: string; email: string; onSa
 
 function ConsoleShell() {
   const { funcionario, carregando, logout } = useAuth();
-  const [menuAberto, setMenuAberto] = useState(estadoInicialMenu);
+  const gaveta = useGaveta();
+  // So a gaveta (mobile) abre e fecha; no desktop a coluna esta sempre ali.
+  const [gavetaAberta, setGavetaAberta] = useState(false);
+  const menuAberto = !gaveta || gavetaAberta;
 
-  const fecharSeGaveta = useCallback(() => {
-    if (ehGaveta()) setMenuAberto(false);
-  }, []);
-
-  function alternarMenu() {
-    setMenuAberto((atual) => {
-      const proximo = !atual;
-      try {
-        localStorage.setItem(CHAVE_MENU, String(proximo));
-      } catch {
-        // Preferencia e conveniencia: se nao der pra salvar, segue sem.
-      }
-      return proximo;
-    });
-  }
+  const fecharSeGaveta = useCallback(() => setGavetaAberta(false), []);
 
   // Esc fecha a gaveta -- ela cobre o conteudo no mobile, entao precisa da
   // mesma saida de teclado que um dialogo.
   useEffect(() => {
-    if (!menuAberto) return;
+    if (!gavetaAberta) return;
     function aoTeclar(e: KeyboardEvent) {
-      if (e.key === "Escape") fecharSeGaveta();
+      if (e.key === "Escape") setGavetaAberta(false);
     }
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
-  }, [menuAberto, fecharSeGaveta]);
+  }, [gavetaAberta]);
 
   // Na tela de login nao ha menu: sem funcionario autenticado o console
   // renderiza so a barra do topo e o formulario.
@@ -282,12 +310,12 @@ function ConsoleShell() {
           <button
             type="button"
             className="app-menu-toggle"
-            onClick={alternarMenu}
-            aria-label={menuAberto ? "Ocultar menu de navegação" : "Exibir menu de navegação"}
-            aria-expanded={menuAberto}
+            onClick={() => setGavetaAberta((v) => !v)}
+            aria-label={gavetaAberta ? "Ocultar menu de navegação" : "Exibir menu de navegação"}
+            aria-expanded={gavetaAberta}
             aria-controls="menu-lateral"
           >
-            <IconeMenu aberto={menuAberto} />
+            <IconeMenu aberto={gavetaAberta} />
           </button>
         )}
         <Marca />
@@ -313,9 +341,12 @@ function ConsoleShell() {
               inert={!menuAberto}
             >
               <nav className="app-sidebar-nav" aria-label="Seções do console">
-                {MENU_FUNCIONARIO.map(({ to, rotulo, end }) => (
+                {MENU_FUNCIONARIO.map(({ to, rotulo, icone, end }) => (
                   <NavLink key={to} to={to} end={end} onClick={fecharSeGaveta}>
-                    {rotulo}
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      {ICONES_MENU[icone]}
+                    </svg>
+                    <span>{rotulo}</span>
                   </NavLink>
                 ))}
               </nav>
@@ -346,14 +377,6 @@ function ConsoleShell() {
               element={
                 <ProtectedRoute>
                   <Produtos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="caixa"
-              element={
-                <ProtectedRoute>
-                  <Caixa />
                 </ProtectedRoute>
               }
             />
