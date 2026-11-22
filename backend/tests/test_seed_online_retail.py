@@ -21,10 +21,18 @@ from app.models.pedido import Pedido, StatusPedido
 from app.models.pedido_item import PedidoItem
 from app.models.produto import Produto
 from app.models.produto_codigo import ProdutoCodigo
+from app.models.simulacao_venda import SimulacaoVendaExecucao
 
 HOJE = datetime(2026, 11, 17, 15, 0, 0)
 ULTIMO_DIA = date(2011, 11, 29)
 JANELA = 40
+
+@pytest.fixture(autouse=True)
+def _sem_reducao_de_porte(monkeypatch):
+    """Os testes abaixo conferem as quantidades reais do CSV sintetico; o
+    desbaste do porte da loja tem testes proprios (`test_porte_*`)."""
+    monkeypatch.setattr(seed, "FATOR_PORTE", 1.0)
+
 
 # (stockcode, descricao, unidades por dia, preco em GBP)
 PRODUTOS = [
@@ -514,3 +522,92 @@ def test_conferir_imprime_o_resumo_do_banco(db_session, csv_sintetico, capsys):
 
     assert "produtos: 10" in saida
     assert "periodo das vendas" in saida
+
+
+# --- porte da loja (FATOR_PORTE) -----------------------------------------------
+
+
+def _vendas(db_session):
+    return (
+        db_session.scalar(select(func.count(Pedido.id))),
+        db_session.scalar(select(func.coalesce(func.sum(PedidoItem.quantidade), 0))),
+        db_session.scalar(select(func.coalesce(func.sum(Pedido.valor_total), 0))),
+    )
+
+
+def test_porte_reduz_unidades_e_receita_na_proporcao(db_session, csv_sintetico):
+    _rodar(db_session, csv_sintetico)
+    _, un_cheio, rec_cheia = _vendas(db_session)
+
+    _rodar(db_session, csv_sintetico, fator_porte=5.0)
+    _, un, rec = _vendas(db_session)
+
+    assert 0.7 * un_cheio / 5 < un < 1.3 * un_cheio / 5
+    assert 0.6 * float(rec_cheia) / 5 < float(rec) < 1.4 * float(rec_cheia) / 5
+
+
+def test_porte_preserva_preco_praticado_e_consistencia(db_session, csv_sintetico):
+    _rodar(db_session, csv_sintetico, fator_porte=5.0)
+
+    # nenhum pedido zerado; subtotal = preco x quantidade; estoque fecha.
+    for item in db_session.scalars(select(PedidoItem)):
+        assert item.quantidade >= 1
+        assert item.subtotal == item.preco_unitario_snapshot * item.quantidade
+    saidas = db_session.scalar(
+        select(func.sum(MovimentacaoEstoque.quantidade)).where(MovimentacaoEstoque.tipo == TipoMovimentacao.SAIDA_VENDA)
+    )
+    assert saidas == db_session.scalar(select(func.sum(PedidoItem.quantidade)))
+    for estoque in db_session.scalars(select(Estoque)):
+        saldo = 0
+        for mov in db_session.scalars(select(MovimentacaoEstoque).where(MovimentacaoEstoque.produto_id == estoque.produto_id)):
+            saldo += -mov.quantidade if mov.tipo == TipoMovimentacao.SAIDA_VENDA else mov.quantidade
+        assert saldo == estoque.quantidade >= 0
+
+
+def test_porte_e_deterministico_e_independe_da_semente_de_custo(db_session, csv_sintetico):
+    _rodar(db_session, csv_sintetico, fator_porte=5.0, rng_seed=1)
+    a = _vendas(db_session)
+    _rodar(db_session, csv_sintetico, fator_porte=5.0, rng_seed=99)
+    assert _vendas(db_session) == a
+
+
+# --- idempotencia da simulacao diaria ------------------------------------------
+
+
+def test_seed_registra_todos_os_dias_da_janela_como_executados(db_session, csv_sintetico):
+    resumo = _rodar(db_session, csv_sintetico)
+
+    execucoes = {e.dia: e for e in db_session.scalars(select(SimulacaoVendaExecucao))}
+    esperados = {resumo["periodo_inicio"] + timedelta(days=i) for i in range((resumo["periodo_fim"] - resumo["periodo_inicio"]).days + 1)}
+    assert set(execucoes) == esperados
+    assert HOJE.date() in execucoes
+    assert resumo["dias_registrados"] == len(esperados)
+    assert all(e.origem == seed.ORIGEM_DADOS for e in execucoes.values())
+    assert sum(e.pedidos_criados for e in execucoes.values()) == resumo["pedidos"]
+    assert sum(e.unidades_vendidas for e in execucoes.values()) == resumo["unidades_vendidas"]
+
+
+def test_reseed_zera_o_controle_antigo(db_session, csv_sintetico):
+    db_session.add(
+        SimulacaoVendaExecucao(dia=date(2030, 1, 1), pedidos_criados=9, unidades_vendidas=9, executado_em=HOJE, origem="x")
+    )
+    db_session.commit()
+
+    _rodar(db_session, csv_sintetico)
+
+    assert db_session.scalar(select(SimulacaoVendaExecucao).where(SimulacaoVendaExecucao.dia == date(2030, 1, 1))) is None
+
+
+def test_simulacao_nao_duplica_dia_coberto_pelo_seed_e_gera_o_proximo(db_session, csv_sintetico):
+    from app.services import store_simulation_service as sim
+
+    _rodar(db_session, csv_sintetico)
+    antes = db_session.scalar(select(func.count(Pedido.id)))
+
+    r = sim.simular_dia(db_session, HOJE.date(), semente=1, deterministico=True)
+    assert r.ja_executado is True
+    assert db_session.scalar(select(func.count(Pedido.id))) == antes
+
+    r = sim.simular_dia(db_session, HOJE.date() + timedelta(days=1), semente=1, deterministico=True)
+    assert r.ja_executado is False
+    assert db_session.scalar(select(func.count(Pedido.id))) > antes

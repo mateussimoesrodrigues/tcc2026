@@ -10,6 +10,8 @@ O que e REAL e o que e DERIVADO:
   quais produtos vendem mais (top N)        custo (preco / (1 + margem sorteada))
   nome do produto (Description, em ingles)  nome em PT-BR (traducao manual por StockCode,
   quantidade vendida por produto e dia        app/seed_traducoes.py)
+  (so a FORMA; o VOLUME e reduzido por         volume diario (quantidade / FATOR_PORTE,
+  FATOR_PORTE: atacado -> loja pequena)        pra escala de loja pequena)
   preco praticado (em GBP, antes da escala) estoque inicial e atual
   espacamento relativo entre as vendas      quantidade minima de estoque
                                             categoria (palavras-chave no nome em ingles)
@@ -77,6 +79,7 @@ from app.models import (
     ProdutoCodigo,
     PromocaoSugestao,
     SessaoCarrinho,
+    SimulacaoVendaExecucao,
 )
 from app.models.estoque import LIMITE_ESTOQUE_BAIXO_PADRAO
 from app.models.funcionario import PapelFuncionario
@@ -108,6 +111,28 @@ FATOR_NORMALIZACAO = 10.0
 # Pra eles o fator sobe (so pra aquele produto, entao o preco relativo entre
 # as vendas do mesmo item e preservado) ate o preco de tabela chegar aqui.
 PRECO_MINIMO_REAL = 2.50
+
+# --- porte da loja -----------------------------------------------------------
+# O dataset e de um ATACADO: so o volume diario (~R$ 60 mil/dia apos a escala de
+# preco) ja e de atacado. FATOR_PORTE reduz a DEMANDA (unidades) pra escala de
+# uma loja pequena: cada unidade vendida no dataset sobrevive com probabilidade
+# 1/FATOR_PORTE (desbaste binomial). Dai saem ~30-80 pedidos e ~R$ 1-3 mil por
+# dia. Mexa SO aqui pra calibrar: maior = loja menor; 1 = sem reducao (escala
+# do atacado original).
+#
+# Onde vale (um ponto so, de proposito):
+#   * historico: aplicado AQUI, nas vendas por (produto, dia), ANTES de derivar
+#     giro, ponto de reposicao e estoque -- tudo sai coerente com o volume pequeno;
+#   * simulacao diaria (`store_simulation_service`): NAO reaplica. O ritmo de
+#     cada produto e lido do historico do banco, entao herda a escala daqui.
+#     Reaplicar la reduziria duas vezes e abriria um degrau no grafico.
+# Consequencia: apos mudar o fator, e preciso rodar o seed de novo (ele
+# substitui o banco) e depois, se quiser, preencher os dias ate hoje com
+# `POST /simulacao/executar`.
+#
+# O desbaste usa uma semente PROPRIA por (produto, dia), independente de
+# `--seed`: as vendas continuam as mesmas ao variar so custo/estoque.
+FATOR_PORTE = 30.0
 
 # --- limpeza ---------------------------------------------------------------
 # StockCode de produto neste dataset: 5 digitos + 0 a 2 letras de variante
@@ -302,7 +327,21 @@ def _nome_do_produto(descricoes) -> str:
 # ---------------------------------------------------------------------------
 # 6-9. Derivacao do catalogo (categoria, escala de preco, custo, estoque)
 # ---------------------------------------------------------------------------
-def derivar_catalogo(linhas, codigos: list[str], rng: random.Random, *, janela_dias: int):
+def _desbastar(quantidade: int, fator: float, chave: str) -> int:
+    """Quantas das `quantidade` unidades sobrevivem ao porte da loja: binomial
+    (n=quantidade, p=1/fator), deterministico por `chave` (produto + dia)."""
+    if fator <= 1 or quantidade <= 0:
+        return quantidade
+    r = random.Random(f"porte:{chave}")
+    p = 1.0 / fator
+    if quantidade > 2000:  # aproximacao normal: evita laco longo
+        return max(0, min(quantidade, round(r.gauss(quantidade * p, math.sqrt(quantidade * p * (1 - p))))))
+    return sum(1 for _ in range(quantidade) if r.random() < p)
+
+
+def derivar_catalogo(
+    linhas, codigos: list[str], rng: random.Random, *, janela_dias: int, fator_porte: float | None = None
+):
     """Devolve `(produtos, diario)`.
 
     `produtos`: `ProdutoDerivado` na ordem do ranking, com preco, custo e
@@ -324,7 +363,21 @@ def derivar_catalogo(linhas, codigos: list[str], rng: random.Random, *, janela_d
     agregado = agregado.sort_values(["quando", "StockCode"]).reset_index(drop=True)
 
     descricoes = linhas.groupby("StockCode")["Description"].apply(list)
+    # Antes do desbaste: o ultimo dia de venda nao pode andar com o porte.
     ultimo_dia = agregado["dia"].max() if len(agregado) else None
+
+    # Porte da loja: reduz a quantidade por (produto, dia). O preco medio do dia
+    # e fixado ANTES (receita/quantidade originais), pra o desbaste mudar so o
+    # volume e nao o preco praticado. Dia que zera deixa de ter pedido.
+    fator_porte = FATOR_PORTE if fator_porte is None else fator_porte
+    agregado["preco_medio"] = agregado["receita"] / agregado["quantidade"]
+    if fator_porte > 1:
+        agregado["quantidade"] = [
+            _desbastar(int(q), fator_porte, f"{codigo}:{dia:%Y-%m-%d}")
+            for codigo, dia, q in zip(agregado["StockCode"], agregado["dia"], agregado["quantidade"])
+        ]
+        agregado = agregado[agregado["quantidade"] > 0].reset_index(drop=True)
+
     corte_giro = None
     janela_giro = min(JANELA_DIAS_PADRAO, janela_dias)
     if ultimo_dia is not None:
@@ -374,7 +427,7 @@ def derivar_catalogo(linhas, codigos: list[str], rng: random.Random, *, janela_d
             "stockcode": linha.StockCode,
             "quando": linha.quando.to_pydatetime(),
             "quantidade": int(linha.quantidade),
-            "preco_gbp": float(linha.receita) / float(linha.quantidade),
+            "preco_gbp": float(linha.preco_medio),
         }
         for linha in agregado.itertuples(index=False)
         if linha.StockCode in escolhidos
@@ -416,9 +469,13 @@ def _derivar_estoque(produtos: list[ProdutoDerivado], rng: random.Random) -> Non
 def limpar_tabelas(session) -> None:
     """Apaga na ordem correta (respeitando FKs) para permitir rodar o seed
     mais de uma vez sem duplicar dados. `Display` vem primeiro porque tem FK
-    para `produto`. `simulacao_venda_execucao` e `job_atualizacao` ficam: sao
-    o controle de idempotencia do job diario, nao dado de catalogo."""
+    para `produto`. `simulacao_venda_execucao` tambem e apagada: e o controle
+    de idempotencia da simulacao diaria e precisa acompanhar os pedidos -- se
+    sobrasse, dias sem pedido ficariam "ja executados" (buraco no historico).
+    O seed a repovoa ao fim (`_registrar_dias_cobertos`). `job_atualizacao`
+    fica: nao tem relacao com o dado de vendas."""
     session.query(Display).delete()
+    session.query(SimulacaoVendaExecucao).delete()
     session.query(PedidoItem).delete()
     session.query(HistoricoPreco).delete()
     session.query(MovimentacaoEstoque).delete()
@@ -516,6 +573,37 @@ def _gravar_vendas(session, rng, produtos_db: dict[str, Produto], diario: list[d
     return len(pedidos), unidades_total, receita_total
 
 
+def _registrar_dias_cobertos(
+    session, diario: list[dict], deslocamento: timedelta, hoje: datetime, inicio_janela: date, fim_janela: date
+) -> int:
+    """Marca em `simulacao_venda_execucao` TODO dia do primeiro ao ultimo da
+    janela (inclusive dias sem venda e o dia de hoje) com o que o seed gravou.
+    Assim `POST /simulacao/executar` responde `ja_executado` pra esses dias e so
+    gera dias novos, sem somar vendas simuladas as importadas no mesmo dia."""
+    por_dia: dict[date, list[int]] = {}
+    for venda in diario:
+        dia = min(venda["quando"] + deslocamento, hoje).date()
+        total = por_dia.setdefault(dia, [0, 0])
+        total[0] += 1
+        total[1] += venda["quantidade"]
+
+    registros = []
+    for i in range((fim_janela - inicio_janela).days + 1):
+        dia = inicio_janela + timedelta(days=i)
+        pedidos, unidades = por_dia.get(dia, (0, 0))
+        registros.append(
+            {
+                "dia": dia,
+                "pedidos_criados": pedidos,
+                "unidades_vendidas": unidades,
+                "executado_em": hoje,
+                "origem": ORIGEM_DADOS,
+            }
+        )
+    _inserir_em_lotes(session, SimulacaoVendaExecucao, registros)
+    return len(registros)
+
+
 def _url_do_banco(session) -> str:
     return session.get_bind().url.render_as_string(hide_password=True)
 
@@ -527,6 +615,7 @@ def rodar_seed(
     n_produtos: int = N_PRODUTOS,
     janela_dias: int = JANELA_DIAS,
     rng_seed: int = SEED,
+    fator_porte: float | None = None,
     hoje: datetime | None = None,
     verbose: bool = True,
 ) -> dict:
@@ -539,6 +628,7 @@ def rodar_seed(
     caminho_csv = CAMINHO_CSV if caminho_csv is None else caminho_csv
     hoje = hoje or datetime.now(UTC).replace(tzinfo=None)
     rng = random.Random(rng_seed)
+    fator_porte = FATOR_PORTE if fator_porte is None else fator_porte
 
     def log(*args):
         if verbose:
@@ -558,7 +648,7 @@ def rodar_seed(
     linhas, primeiro_dia_orig, ultimo_dia_orig = recortar_janela(limpo, codigos, janela_dias)
     if linhas.empty:
         raise ValueError("Nenhuma venda dos produtos selecionados na janela -- CSV vazio ou janela invalida.")
-    produtos, diario = derivar_catalogo(linhas, codigos, rng, janela_dias=janela_dias)
+    produtos, diario = derivar_catalogo(linhas, codigos, rng, janela_dias=janela_dias, fator_porte=fator_porte)
 
     deslocamento = timedelta(days=(hoje.date() - ultimo_dia_orig).days)
     inicio_janela = primeiro_dia_orig + deslocamento
@@ -650,6 +740,7 @@ def rodar_seed(
 
         fatores = {p.stockcode: p.fator for p in produtos}
         pedidos, unidades, receita = _gravar_vendas(session, rng, produtos_db, diario, fatores, deslocamento, hoje)
+        dias_registrados = _registrar_dias_cobertos(session, diario, deslocamento, hoje, inicio_janela, fim_janela)
         session.commit()
 
         resumo = {
@@ -669,6 +760,8 @@ def rodar_seed(
             "categorias": dict(Counter(p.categoria for p in produtos)),
             "rng_seed": rng_seed,
             "janela_dias": janela_dias,
+            "fator_porte": fator_porte,
+            "dias_registrados": dias_registrados,
         }
 
         if verbose:
@@ -686,6 +779,8 @@ def _imprimir_resumo(resumo: dict, produtos: list[ProdutoDerivado]) -> None:
     print("-" * 68)
     print(f"OK: {resumo['produtos']} produtos, {resumo['pedidos']:,} pedidos "
           f"(1 item cada), {resumo['unidades_vendidas']:,} unidades, R$ {resumo['receita']:,.2f}")
+    print(f"    {resumo['dias_registrados']} dias registrados em simulacao_venda_execucao (a simulacao so gera dias novos)")
+    print(f"    porte da loja: demanda do dataset / {resumo['fator_porte']:g} (FATOR_PORTE)")
     print(f"    periodo: {resumo['periodo_inicio']} a {resumo['periodo_fim']} "
           f"(original: {resumo['periodo_original_inicio']} a {resumo['periodo_original_fim']})")
     print(f"    categorias: {resumo['categorias']}")

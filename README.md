@@ -76,6 +76,12 @@ Parâmetros editáveis no topo de `app/seed.py`: `CAMINHO_CSV`, `N_PRODUTOS=100`
 `JANELA_DIAS=180`, `FAIXA_MARGEM=(0.40, 0.50)`, `SEED=42`,
 `FATOR_NORMALIZACAO=10.0` e o dicionário `CATEGORIAS_PALAVRAS_CHAVE`.
 
+**Porte da loja (`FATOR_PORTE=30`).** O dataset é de um atacado; o seed reduz a
+demanda (cada unidade vendida sobrevive com probabilidade `1/FATOR_PORTE`, de
+forma determinística) para a escala de uma loja pequena: ~40 pedidos e ~R$ 2 mil
+por dia. Maior = loja menor. O fator vale só no seed; a simulação diária lê o
+ritmo do histórico do banco e herda a escala. Ao mudá-lo, rode o seed de novo.
+
 **Metodologia** (mesma semente + mesmo CSV = mesmo resultado, o que permite
 citar os parâmetros na monografia):
 
