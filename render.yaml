@@ -25,12 +25,6 @@ services:
         value: production
       - key: ENABLE_SCHEDULER
         value: "true"
-      - key: ENABLE_DAILY_SALES_SIMULATOR
-        value: "true"
-      - key: DAILY_SALES_SIMULATION_HOUR
-        value: "21"
-      - key: DAILY_SALES_SIMULATION_MINUTE
-        value: "35"
       - key: JWT_ALGORITHM
         value: HS256
       - key: JWT_EXPIRE_MINUTES
@@ -46,4 +40,6 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GEMINI_API_KEY
+        sync: false
+      - key: SIMULATION_API_KEY
         sync: false

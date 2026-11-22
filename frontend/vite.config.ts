@@ -17,6 +17,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'favicon.ico', 'favicon-180.png'],
       manifest: {
         name: 'Precix.AI',
+        lang: 'pt-BR',
         short_name: 'Precix.AI',
         description: 'Precificação inteligente para varejo físico: margens, estoque e promoções com IA.',
         theme_color: '#0F766E',

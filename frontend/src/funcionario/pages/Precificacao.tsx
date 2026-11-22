@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiFetch } from "../../api/client";
+import Skeleton from "../../components/Skeleton";
+import Badge from "../../components/Badge";
+import { contar, formatBRL, formatNumber, formatPercentFracao } from "../../utils/format";
 
 /**
  * Margem defasada: produtos vendidos abaixo da margem-alvo, normalmente
@@ -31,13 +34,8 @@ interface Resposta {
   total_abaixo_do_alvo: number;
 }
 
-function moeda(valor: string | number) {
-  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function pct(fracao: number) {
-  return `${(fracao * 100).toFixed(1)}%`;
-}
+const moeda = formatBRL;
+const pct = (fracao: number) => formatPercentFracao(fracao, 1);
 
 export default function Precificacao() {
   const [alvo, setAlvo] = useState(35);
@@ -124,24 +122,24 @@ export default function Precificacao() {
       </div>
 
       {erro && <p className="erro">{erro}</p>}
-      {carregando && <p>Carregando...</p>}
+      {carregando && <Skeleton />}
 
       {dados && !carregando && (
         <>
           <div className="kpi-grid">
             <div className="kpi">
               <span className="kpi-rotulo">Abaixo do alvo</span>
-              <span className="kpi-valor">{dados.total_abaixo_do_alvo}</span>
+              <span className="kpi-valor">{formatNumber(dados.total_abaixo_do_alvo)}</span>
               <span className="kpi-apoio">produtos ativos com margem menor que {alvo}%</span>
             </div>
             <div className="kpi">
               <span className="kpi-rotulo">Vendidos no prejuízo</span>
-              <span className="kpi-valor">{dados.itens.filter((i) => i.margem_atual < 0).length}</span>
+              <span className="kpi-valor">{formatNumber(dados.itens.filter((i) => i.margem_atual < 0).length)}</span>
               <span className="kpi-apoio">preço de tabela abaixo do custo</span>
             </div>
             <div className="kpi">
               <span className="kpi-rotulo">Sem custo cadastrado</span>
-              <span className="kpi-valor">{dados.produtos_sem_custo}</span>
+              <span className="kpi-valor">{formatNumber(dados.produtos_sem_custo)}</span>
               <span className="kpi-apoio">ficam fora deste diagnóstico</span>
             </div>
           </div>
@@ -171,9 +169,7 @@ export default function Precificacao() {
                       <td>
                         {item.nome}
                         {item.marca && <span className="promo-detalhe"> {item.marca}</span>}
-                        {item.promocao_ativa && (
-                          <span className="badge-em-andamento">promoção</span>
-                        )}
+                        {item.promocao_ativa && <Badge tone="promo">Promoção</Badge>}
                         {erroPorProduto[item.produto_id] && (
                           <p className="promo-erro">{erroPorProduto[item.produto_id]}</p>
                         )}
@@ -218,7 +214,7 @@ export default function Precificacao() {
             {dados.produtos_sem_custo > 0 && (
               <>
                 {" "}
-                {dados.produtos_sem_custo} produto(s) sem custo cadastrado não aparecem aqui —
+                {contar(dados.produtos_sem_custo, "produto sem custo cadastrado não aparece", "produtos sem custo cadastrado não aparecem")} aqui —
                 registrar a entrada de mercadoria com o custo pago resolve.
               </>
             )}

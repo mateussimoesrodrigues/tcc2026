@@ -5,7 +5,7 @@
    =========================================================================== */
 
 .page.ind {
-  max-width: 1480px;
+  max-width: var(--container-w);
   width: 100%;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .ind-hero-total strong {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.6rem;
   letter-spacing: -0.03em;
   line-height: 1.15;
@@ -339,7 +339,7 @@
 }
 
 .ind-kpi-valor {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.65rem;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -397,7 +397,7 @@
 }
 
 .ind-eixo {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10.5px;
   fill: var(--text-soft);
 }
@@ -458,7 +458,7 @@
 }
 
 .ind-dica strong {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.92rem;
 }
 
@@ -509,7 +509,7 @@
 }
 
 .ind-rosca-centro strong {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.7rem;
   letter-spacing: -0.03em;
 }
@@ -545,7 +545,6 @@
 .ind-ia-legenda strong {
   margin-left: auto;
   padding-left: 0.8rem;
-  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -589,7 +588,7 @@
 .ind-lista-linha > .variacao-positiva,
 .ind-lista-linha > .variacao-negativa {
   flex-shrink: 0;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.86rem;
 }
 
@@ -670,7 +669,7 @@
 }
 
 .ind-semana-valor {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.68rem;
   color: var(--text-soft);
   white-space: nowrap;
@@ -779,7 +778,7 @@
 }
 
 .ind-taxa strong {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.3rem;
   letter-spacing: -0.02em;
   color: var(--accent-text);

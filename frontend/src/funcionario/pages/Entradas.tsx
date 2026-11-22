@@ -1,5 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../../api/client";
+import Skeleton from "../../components/Skeleton";
+import Badge from "../../components/Badge";
+import Icone from "../../components/Icone";
+import { contar, formatBRL, formatDateTime, formatNumber } from "../../utils/format";
 
 /**
  * Entrada de mercadoria e sugestão de reposição na mesma tela, em três
@@ -78,13 +82,15 @@ interface Reposicao {
 
 const ITEM_VAZIO: ItemEntrada = { produto_id: "", quantidade: "1", custo_unitario: "" };
 
-function moeda(valor: string | number) {
-  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+// Entradas geradas pelo seed trazem "Estoque inicial DERIVADO (estimativa) - ...":
+// na tela basta "Estoque inicial". O dado no banco nao e alterado.
+function rotuloNota(observacao: string | null): string {
+  if (!observacao) return "—";
+  return /^estoque inicial/i.test(observacao.trim()) ? "Estoque inicial" : observacao;
 }
 
-function dataHora(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
+const moeda = formatBRL;
+const dataHora = formatDateTime;
 
 export default function Entradas() {
   const [modo, setModo] = useState<"lista" | "nova" | "reposicao">("lista");
@@ -192,7 +198,7 @@ export default function Entradas() {
   if (carregando) {
     return (
       <div className="page page-wide">
-        <p>Carregando...</p>
+        <Skeleton />
       </div>
     );
   }
@@ -221,9 +227,10 @@ export default function Entradas() {
               {resultado.itens.map((item) => (
                 <tr key={item.produto_id}>
                   <td>{item.nome}</td>
-                  <td className="celula-mono">+{item.quantidade}</td>
+                  <td className="celula-mono">+{formatNumber(item.quantidade)}</td>
                   <td className="celula-mono">
-                    {item.estoque_anterior} → {item.estoque_resultante}
+                    {formatNumber(item.estoque_anterior)} <Icone nome="seta" titulo="para" />{" "}
+                    {formatNumber(item.estoque_resultante)}
                   </td>
                   <td className="celula-mono">{item.custo_anterior ? moeda(item.custo_anterior) : "—"}</td>
                   <td className="celula-mono">{moeda(item.custo_resultante)}</td>
@@ -327,7 +334,7 @@ export default function Entradas() {
 
                   {produto && (
                     <span className="entrada-item-contexto">
-                      em estoque: {produto.estoque?.quantidade ?? 0} · custo atual:{" "}
+                      em estoque: {formatNumber(produto.estoque?.quantidade ?? 0)} · custo atual:{" "}
                       {produto.custo ? moeda(produto.custo) : "não cadastrado"}
                     </span>
                   )}
@@ -367,8 +374,9 @@ export default function Entradas() {
       <div className="page page-wide">
         <h1>Reposição sugerida</h1>
         <p>
-          Produtos que acabam em até {reposicao?.dias_alerta} dias no ritmo atual de venda, mais os
-          que já romperam. A quantidade sugerida cobre {reposicao?.dias_cobertura} dias.
+          Produtos que acabam em até {contar(reposicao?.dias_alerta ?? 0, "dia", "dias")} no ritmo atual de
+          venda, mais os que já romperam. A quantidade sugerida cobre{" "}
+          {contar(reposicao?.dias_cobertura ?? 0, "dia", "dias")}.
         </p>
 
         {itensReposicao.length === 0 ? (
@@ -378,7 +386,7 @@ export default function Entradas() {
             <div className="kpi-grid">
               <div className="kpi">
                 <span className="kpi-rotulo">Produtos a repor</span>
-                <span className="kpi-valor">{itensReposicao.length}</span>
+                <span className="kpi-valor">{formatNumber(itensReposicao.length)}</span>
                 <span className="kpi-apoio">
                   {itensReposicao.filter((i) => i.situacao === "ruptura").length} já sem estoque
                 </span>
@@ -417,22 +425,22 @@ export default function Entradas() {
                         {item.nome}
                         {item.marca && <span className="promo-detalhe"> {item.marca}</span>}
                         {item.promocao_ativa && (
-                          <span
-                            className="badge-em-andamento"
+                          <Badge
+                            tone="promo"
                             title="Em promoção: o giro está acima do normal, então os dias restantes estão subestimados."
                           >
-                            promoção
-                          </span>
+                            Promoção
+                          </Badge>
                         )}
                       </td>
-                      <td className="celula-mono">{item.estoque}</td>
-                      <td className="celula-mono">{item.giro_diario.toFixed(2)}</td>
+                      <td className="celula-mono">{formatNumber(item.estoque)}</td>
+                      <td className="celula-mono">{formatNumber(item.giro_diario, 2)}</td>
                       <td className="celula-mono">
                         {item.situacao === "ruptura"
                           ? "sem estoque"
-                          : `${item.dias_de_estoque_restante} dias`}
+                          : contar(Math.round(item.dias_de_estoque_restante), "dia", "dias")}
                       </td>
-                      <td className="celula-mono">{item.quantidade_sugerida}</td>
+                      <td className="celula-mono">{formatNumber(item.quantidade_sugerida)}</td>
                       <td className="celula-mono">
                         {moeda(item.custo_estimado_compra)}
                         {item.custo_estimado && "*"}
@@ -508,11 +516,11 @@ export default function Entradas() {
                 <tr key={entrada.id}>
                   <td className="celula-mono">{dataHora(entrada.criado_em)}</td>
                   <td>{entrada.produto_nome}</td>
-                  <td className="celula-mono">+{entrada.quantidade}</td>
+                  <td className="celula-mono">+{formatNumber(entrada.quantidade)}</td>
                   <td className="celula-mono">
                     {entrada.custo_unitario ? moeda(entrada.custo_unitario) : "—"}
                   </td>
-                  <td>{entrada.observacao ?? "—"}</td>
+                  <td title={entrada.observacao ?? undefined}>{rotuloNota(entrada.observacao)}</td>
                 </tr>
               ))}
             </tbody>

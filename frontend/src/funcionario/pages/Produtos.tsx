@@ -1,5 +1,11 @@
 import { Fragment, useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../../api/client";
+import Badge from "../../components/Badge";
+import Icone from "../../components/Icone";
+import MenuAcoes from "../../components/MenuAcoes";
+import { PromoPrice } from "../../components/Preco";
+import Skeleton from "../../components/Skeleton";
+import { contar, formatBRL, formatNumber } from "../../utils/format";
 
 interface Categoria {
   id: number;
@@ -46,6 +52,8 @@ interface EstoqueResumo {
  * tela gravasse "agora são 8", o sistema não saberia se entraram 3 ou
  * saíram 2.
  */
+const POR_PAGINA = 25;
+
 const MOTIVOS_SAIDA = ["Quebra", "Perda", "Uso interno", "Erro de contagem"];
 
 interface FormCriar {
@@ -107,6 +115,7 @@ export default function Produtos() {
   // do topo precisa do total de produtos em falta mesmo com ele ligado, e
   // a lista completa ja esta carregada.
   const [somenteBaixo, setSomenteBaixo] = useState(false);
+  const [pagina, setPagina] = useState(1);
 
   // Ajuste de estoque em linha. Nomes proprios (e nao os `salvando`/
   // `erroForm` ja usados pelos formularios de criar/editar produto) porque
@@ -143,6 +152,9 @@ export default function Produtos() {
       .catch(() => setErro("Não foi possível carregar os produtos."))
       .finally(() => setCarregando(false));
   }
+
+  // Qualquer mudanca de filtro volta para a primeira pagina.
+  useEffect(() => setPagina(1), [busca, categoriaFiltro, somenteAtivos, somenteBaixo]);
 
   useEffect(carregarCategorias, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -528,28 +540,48 @@ export default function Produtos() {
   }
 
   const totalBaixo = produtos.filter((p) => p.estoque?.estoque_baixo).length;
-  const visiveis = somenteBaixo ? produtos.filter((p) => p.estoque?.estoque_baixo) : produtos;
+  const filtrados = somenteBaixo ? produtos.filter((p) => p.estoque?.estoque_baixo) : produtos;
+
+  // Paginacao so no front: a API devolve a lista inteira.
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * POR_PAGINA;
+  const visiveis = filtrados.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <div className="page page-wide">
       <h1>Produtos</h1>
 
-      {/* U+FE0E depois do sinal forca o glifo de texto (monocromatico, na cor
-          do paragrafo). Sem ele o Windows troca por emoji e o triangulo volta
-          a aparecer amarelo, justamente o que o cinza queria tirar da tela. */}
-      <p className={totalBaixo > 0 ? "alerta alerta-neutro" : ""}>
-        {totalBaixo > 0
-          ? `⚠︎ ${totalBaixo} produto(s) com estoque baixo.`
-          : "Nenhum produto com estoque baixo no momento."}
-      </p>
+      {/* O aviso e um botao: clicar liga o filtro "Somente estoque baixo". */}
+      {totalBaixo > 0 ? (
+        <button
+          type="button"
+          className="alerta alerta-neutro alerta-botao"
+          aria-pressed={somenteBaixo}
+          onClick={() => setSomenteBaixo((v) => !v)}
+        >
+          <Icone nome="alerta" />
+          <span>
+            {contar(totalBaixo, "produto", "produtos")} com estoque baixo
+            <small>{somenteBaixo ? " — mostrar todos" : " — ver apenas esses"}</small>
+          </span>
+        </button>
+      ) : (
+        <p>Nenhum produto com estoque baixo no momento.</p>
+      )}
 
       <div className="produtos-filtros">
         <input
+          aria-label="Buscar produto por nome"
           placeholder="Buscar por nome..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
-        <select value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)}>
+        <select
+          aria-label="Filtrar por categoria"
+          value={categoriaFiltro}
+          onChange={(e) => setCategoriaFiltro(e.target.value)}
+        >
           <option value="">Todas as categorias</option>
           {categorias.map((c) => (
             <option key={c.id} value={c.id}>
@@ -557,12 +589,22 @@ export default function Produtos() {
             </option>
           ))}
         </select>
-        <label className="checkbox-label">
-          <input type="checkbox" checked={somenteAtivos} onChange={(e) => setSomenteAtivos(e.target.checked)} />
+        <label className="checkbox-label" htmlFor="filtro-somente-ativos">
+          <input
+            id="filtro-somente-ativos"
+            type="checkbox"
+            checked={somenteAtivos}
+            onChange={(e) => setSomenteAtivos(e.target.checked)}
+          />
           Somente ativos
         </label>
-        <label className="checkbox-label">
-          <input type="checkbox" checked={somenteBaixo} onChange={(e) => setSomenteBaixo(e.target.checked)} />
+        <label className="checkbox-label" htmlFor="filtro-somente-baixo">
+          <input
+            id="filtro-somente-baixo"
+            type="checkbox"
+            checked={somenteBaixo}
+            onChange={(e) => setSomenteBaixo(e.target.checked)}
+          />
           Somente estoque baixo
         </label>
         <button type="button" onClick={abrirCriar} className="produtos-novo-btn">
@@ -571,7 +613,7 @@ export default function Produtos() {
       </div>
 
       {erro && <p className="erro">{erro}</p>}
-      {carregando && <p>Carregando...</p>}
+      {carregando && <Skeleton />}
 
       {!carregando && !erro && visiveis.length === 0 && (
         <p>
@@ -590,8 +632,10 @@ export default function Produtos() {
                 <th>Categoria</th>
                 <th>Preço</th>
                 <th>Estoque</th>
-                <th>Limite</th>
-                <th></th>
+                <th>Estoque mínimo</th>
+                <th>
+                  <span className="sr-only">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -614,38 +658,44 @@ export default function Produtos() {
                       </td>
                       <td>{nomeCategoria(p.categoria_id)}</td>
                       <td>
-                        R$ {p.preco_vigente}
-                        {p.promocao_ativa && <span className="promo-detalhe"> (promoção)</span>}
+                        {p.promocao_ativa ? (
+                          <>
+                            <PromoPrice original={p.preco_normal} promo={p.preco_vigente} />
+                            <span className="sr-only"> (em promoção)</span>
+                          </>
+                        ) : (
+                          formatBRL(p.preco_vigente)
+                        )}
                       </td>
                       <td className="celula-mono">
-                        {p.estoque?.quantidade ?? "-"}
-                        {baixo && <span className="celula-detalhe">⚠︎ baixo</span>}
+                        {p.estoque ? formatNumber(p.estoque.quantidade) : "-"}
+                        {baixo && (
+                          <span className="celula-detalhe">
+                            <Badge tone="warning">Estoque baixo</Badge>
+                          </span>
+                        )}
                       </td>
-                      <td className="celula-mono">{p.estoque?.limite_aplicado ?? "-"}</td>
+                      <td className="celula-mono">{p.estoque ? formatNumber(p.estoque.limite_aplicado) : "-"}</td>
                       <td className="produtos-acoes-linha">
                         {/* Produto sem linha de estoque (dado legado) nao tem
                             o que ajustar -- editar/desativar continuam. */}
-                        {p.estoque && (
-                          <button
-                            type="button"
-                            className="link-button"
-                            onClick={() => (ajustando === p.id ? setAjustando(null) : abrirAjuste(p.id))}
-                          >
-                            {ajustando === p.id ? "Cancelar" : "Ajustar"}
-                          </button>
-                        )}
-                        <button type="button" className="link-button" onClick={() => abrirEditar(p)}>
-                          Editar
-                        </button>
-                        {p.ativo && (
-                          <button
-                            type="button"
-                            className="link-button produtos-desativar"
-                            onClick={() => handleDesativar(p)}
-                          >
-                            Desativar
-                          </button>
-                        )}
+                        <MenuAcoes
+                          rotulo={`Ações de ${p.nome}`}
+                          itens={[
+                            ...(p.estoque
+                              ? [
+                                  {
+                                    rotulo: ajustando === p.id ? "Cancelar ajuste" : "Ajustar estoque",
+                                    onClick: () => (ajustando === p.id ? setAjustando(null) : abrirAjuste(p.id)),
+                                  },
+                                ]
+                              : []),
+                            { rotulo: "Editar", onClick: () => abrirEditar(p) },
+                            ...(p.ativo
+                              ? [{ rotulo: "Desativar", onClick: () => handleDesativar(p), perigo: true }]
+                              : []),
+                          ]}
+                        />
                       </td>
                     </tr>
 
@@ -692,6 +742,23 @@ export default function Produtos() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!carregando && !erro && filtrados.length > POR_PAGINA && (
+        <nav className="paginacao" aria-label="Paginação da lista de produtos">
+          <span>
+            {formatNumber(inicio + 1)}–{formatNumber(inicio + visiveis.length)} de {formatNumber(filtrados.length)}
+          </span>
+          <button type="button" onClick={() => setPagina(paginaAtual - 1)} disabled={paginaAtual <= 1}>
+            Anterior
+          </button>
+          <span aria-current="page">
+            Página {formatNumber(paginaAtual)} de {formatNumber(totalPaginas)}
+          </span>
+          <button type="button" onClick={() => setPagina(paginaAtual + 1)} disabled={paginaAtual >= totalPaginas}>
+            Próxima
+          </button>
+        </nav>
       )}
 
       <datalist id="motivos-ajuste">

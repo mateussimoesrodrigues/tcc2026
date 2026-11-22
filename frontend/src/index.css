@@ -117,6 +117,10 @@
   --success-bg: var(--accent-50);
   --success-border: var(--accent-200);
 
+  /* Ambar do "pendente" (aguarda decisao). Fica FORA do lima, que so significa
+     promocao ativa / preco que caiu. */
+  --pendente: #d97706;
+
   --warning: #8a5a06;
   --warning-strong: #6b4504;
   --warning-bg: #fdf2df;
@@ -153,12 +157,17 @@
   /* Altura da barra do topo. A lateral, a gaveta e o fundo escurecido se
      posicionam a partir dela. */
   --nav-h: 56px;
+  /* Largura maxima do conteudo de todas as telas do console. */
+  --container-w: 1280px;
   /* Largura da coluna lateral (icone + nome) no desktop. */
   --sidebar-w: 84px;
 
-  --sans: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  /* Inter em toda a interface (numeros com tabular-nums, ver mais abaixo). A
+     fonte mono so existe para codigo de verdade (<code>, codigos de barras,
+     token do display) e usa a do sistema. */
+  --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
   --display: var(--sans);
-  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
 
   --ring: 0 0 0 3px color-mix(in srgb, var(--teal) 32%, transparent);
   --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -219,6 +228,8 @@
 
   /* Ambar e vermelho: mesma familia de matiz, clareados (oklch) pro texto e
      com so um tingimento sobre a superficie no fundo e na borda. */
+  --pendente: #fbbf24;
+
   --warning: color-mix(in oklch, #8a5a06 55%, white);
   --warning-strong: color-mix(in oklch, #8a5a06 40%, white);
   --warning-bg: color-mix(in srgb, #8a5a06 16%, var(--surface));
@@ -306,6 +317,8 @@ strong {
 code,
 .celula-mono,
 input[type="number"],
+td,
+th,
 time {
   font-variant-numeric: tabular-nums;
 }

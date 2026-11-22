@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch } from "../../api/client";
+import Icone from "../../components/Icone";
+import Skeleton from "../../components/Skeleton";
+import { contar, formatDateTime, formatNumber, parseInstante } from "../../utils/format";
 
 // Painel de gestao dos displays fisicos de prateleira (etiquetas
 // eletronicas). O token de cada dispositivo so aparece uma vez, na
@@ -43,7 +46,9 @@ const LIMITE_ATRASO_MINUTOS = 15;
 function estaAtrasado(d: Display): boolean {
   if (!d.ativo) return false;
   if (!d.ultima_sincronizacao_em) return true;
-  const minutosDesdeSync = (Date.now() - new Date(d.ultima_sincronizacao_em).getTime()) / 60000;
+  // parseInstante: o backend manda datetime sem fuso (UTC); new Date(str)
+  // leria como horario local e deslocaria o calculo em 3 h.
+  const minutosDesdeSync = (Date.now() - parseInstante(d.ultima_sincronizacao_em).getTime()) / 60000;
   return minutosDesdeSync > LIMITE_ATRASO_MINUTOS;
 }
 
@@ -193,9 +198,9 @@ export default function Displays() {
       <div className="page page-wide">
         <h1>Token gerado</h1>
         <p>
-          Copie o token abaixo e grave no firmware do display <strong>{tokenRevelado.nome}</strong> (variável
-          <code> DISPLAY_TOKEN</code> do sketch, ver <code>docs/displays-fisicos.md</code>). Por segurança, ele não é
-          mostrado de novo -- se perder, gere outro na lista.
+          Copie o token abaixo e grave no firmware do display <strong>{tokenRevelado.nome}</strong> (variável{" "}
+          <code>DISPLAY_TOKEN</code> do sketch). Por segurança, ele não é mostrado de novo: se perder, gere outro na
+          lista.
         </p>
         <div className="display-token-box">{tokenRevelado.token}</div>
         <div className="form-acoes">
@@ -265,25 +270,34 @@ export default function Displays() {
     <div className="page page-wide">
       <h1>Displays físicos</h1>
       <p>
-        Etiquetas eletrônicas de prateleira que exibem o preço vigente do produto vinculado. Cada dispositivo se
-        sincroniza sozinho via wifi/BLE com seu próprio token -- ver <code>docs/displays-fisicos.md</code> para a
-        arquitetura completa e o firmware de referência.
+        Etiquetas eletrônicas de prateleira (ESP32) que exibem o preço vigente do produto vinculado. Cada
+        dispositivo se identifica no sistema com o seu próprio token.
       </p>
 
-      <p className={atrasados > 0 ? "alerta" : ""}>
-        {atrasados > 0
-          ? `⚠ ${atrasados} display(s) sem sincronizar há mais de ${LIMITE_ATRASO_MINUTOS} min (ou nunca).`
-          : "Todos os displays ativos sincronizaram recentemente."}
-      </p>
+      {/* So faz sentido falar de sincronizacao quando ha displays cadastrados. */}
+      {!carregando && !erro && displays.length > 0 && (
+        <p className={atrasados > 0 ? "alerta alerta-com-icone" : ""}>
+          {atrasados > 0 ? (
+            <>
+              <Icone nome="alerta" />
+              {contar(atrasados, "display", "displays")} sem sincronizar há mais de {LIMITE_ATRASO_MINUTOS} min (ou
+              nunca).
+            </>
+          ) : (
+            "Todos os displays ativos sincronizaram recentemente."
+          )}
+        </p>
+      )}
 
-      <div className="produtos-filtros">
+      {/* Sem filtros nesta tela: so o botao, sem a caixa de filtros. */}
+      <div className="barra-acoes">
         <button type="button" onClick={abrirCriar} className="produtos-novo-btn">
           + Novo display
         </button>
       </div>
 
       {erro && <p className="erro">{erro}</p>}
-      {carregando && <p>Carregando...</p>}
+      {carregando && <Skeleton />}
 
       {!carregando && !erro && displays.length === 0 && (
         <p>Nenhum display cadastrado ainda. Cadastre um antes de configurar o firmware do dispositivo.</p>
@@ -308,22 +322,24 @@ export default function Displays() {
                   <td>{d.nome}</td>
                   <td>{nomeProduto(d.produto_id)}</td>
                   <td>
-                    {d.ultima_sincronizacao_em ? new Date(d.ultima_sincronizacao_em).toLocaleString("pt-BR") : "nunca"}
+                    {d.ultima_sincronizacao_em ? formatDateTime(d.ultima_sincronizacao_em) : "nunca"}
                   </td>
-                  <td>{d.bateria_pct != null ? `${d.bateria_pct}%` : "-"}</td>
-                  <td>{d.rssi_dbm != null ? `${d.rssi_dbm} dBm` : "-"}</td>
+                  <td>{d.bateria_pct != null ? `${formatNumber(d.bateria_pct)}%` : "-"}</td>
+                  <td>{d.rssi_dbm != null ? `${formatNumber(d.rssi_dbm)} dBm` : "-"}</td>
                   <td className="produtos-acoes-linha">
-                    <button type="button" className="link-button" onClick={() => abrirEditar(d)}>
-                      Editar
-                    </button>
-                    <button type="button" className="link-button" onClick={() => handleRegenerarToken(d)}>
-                      Novo token
-                    </button>
-                    {d.ativo && (
-                      <button type="button" className="link-button produtos-desativar" onClick={() => handleDesativar(d)}>
-                        Desativar
+                    <span className="acoes-inline">
+                      <button type="button" className="link-button" onClick={() => abrirEditar(d)}>
+                        Editar
                       </button>
-                    )}
+                      <button type="button" className="link-button" onClick={() => handleRegenerarToken(d)}>
+                        Novo token
+                      </button>
+                      {d.ativo && (
+                        <button type="button" className="link-button produtos-desativar" onClick={() => handleDesativar(d)}>
+                          Desativar
+                        </button>
+                      )}
+                    </span>
                   </td>
                 </tr>
               ))}

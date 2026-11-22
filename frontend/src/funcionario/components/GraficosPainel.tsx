@@ -4,6 +4,7 @@
  * claro e escuro funcionam sem nenhum tratamento aqui.
  */
 import { useEffect, useId, useRef, useState } from "react";
+import { formatPercent } from "../../utils/format";
 
 function useLargura<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -27,17 +28,9 @@ function maximoRedondo(valor: number): number {
   return passo * potencia;
 }
 
-/** Curva suave sem overshoot: controles horizontais no meio de cada segmento. */
-function caminhoSuave(pts: { x: number; y: number }[]): string {
-  if (pts.length === 0) return "";
-  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
-    const cx = (a.x + b.x) / 2;
-    d += ` C ${cx.toFixed(1)} ${a.y.toFixed(1)} ${cx.toFixed(1)} ${b.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
-  }
-  return d;
+/** Linha reta entre os pontos (sem suavizacao: a curva inventava picos e vales que os dados nao tem). */
+function caminhoLinear(pts: { x: number; y: number }[]): string {
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
 }
 
 // --- Área (receita ao longo do tempo) -------------------------------------
@@ -75,13 +68,13 @@ export function GraficoArea({ pontos, altura = 250, formatar, formatarEixo, nome
   const y = (v: number) => M.topo + alturaPlot - (v / maximo) * alturaPlot;
 
   const ptsValor = pontos.map((p, i) => ({ x: x(i), y: y(p.valor) }));
-  const linha = caminhoSuave(ptsValor);
+  const linha = caminhoLinear(ptsValor);
   const base = M.topo + alturaPlot;
   const area = pontos.length
     ? `${linha} L ${x(pontos.length - 1).toFixed(1)} ${base} L ${x(0).toFixed(1)} ${base} Z`
     : "";
   const linhaExtra = temExtra
-    ? caminhoSuave(pontos.map((p, i) => ({ x: x(i), y: y(p.extra ?? 0) })))
+    ? caminhoLinear(pontos.map((p, i) => ({ x: x(i), y: y(p.extra ?? 0) })))
     : "";
 
   const passoRotulo = Math.max(1, Math.ceil(pontos.length / Math.max(Math.floor(larguraPlot / 70), 2)));
@@ -228,7 +221,7 @@ export function Rosca({
       </svg>
       <div className="ind-rosca-centro" aria-live="polite">
         <strong>
-          {fatiaAtiva ? `${((fatiaAtiva.valor / total) * 100).toFixed(0)}%` : centro}
+          {fatiaAtiva ? formatPercent((fatiaAtiva.valor / total) * 100, 0) : centro}
         </strong>
         <span>{fatiaAtiva ? `${fatiaAtiva.rotulo} · ${fatiaAtiva.valor}` : legendaCentro}</span>
       </div>

@@ -108,7 +108,7 @@
 }
 
 .app-nav-usuario {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   color: var(--chrome-text-soft);
   font-size: 0.78rem;
   white-space: nowrap;
@@ -416,7 +416,9 @@
   font-size: 0.68rem;
   line-height: 1.15;
   text-align: center;
-  white-space: nowrap;
+  /* Rotulos longos ("Margens e preços") quebram em 2 linhas na coluna estreita. */
+  white-space: normal;
+  text-wrap: balance;
   border-radius: var(--radius);
   transition: color var(--transition), background var(--transition);
 }
@@ -525,17 +527,12 @@ main {
   margin: 0 auto;
 }
 
-/* Telas do console (todas usam `page page-wide`). Largura relativa, e nao
-   um px fixo: num monitor grande a tabela de produtos (catalogo + estoque
-   na mesma linha) aproveita a tela, e num notebook ela encolhe junto.
-
-   O `max()` e o que segura o outro extremo. Uma porcentagem sozinha
-   desperdicaria 20% justamente onde a tela ja e curta -- no celular, ou no
-   desktop com a barra lateral aberta. Como `max-width` nunca passa da
-   largura disponivel, o piso de 900px equivale a "ocupe tudo" enquanto
-   couber, e so a partir dai os 80% valem de fato. */
+/* Telas do console (todas usam `page page-wide`, e o painel de Indicadores
+   `page ind`): um unico container, centralizado, de 1280px no maximo. Como
+   `max-width` nunca passa da largura disponivel, em tela menor ele equivale
+   a "ocupe tudo" -- no celular nao sobra margem desperdicada. */
 .page-wide {
-  max-width: max(80%, 900px);
+  max-width: var(--container-w);
 }
 
 /* Subtitulo logo abaixo do h1 da pagina. `:not([class])` para nao roubar a
@@ -1163,7 +1160,7 @@ main {
 }
 
 .carrinho-total strong {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 1.4rem;
   color: var(--ink-900);
@@ -1280,9 +1277,166 @@ main {
 }
 
 .produtos-acoes-linha {
-  display: flex;
-  gap: 0.75rem;
+  width: 1%;
+  text-align: right;
   white-space: nowrap;
+}
+
+/* Linha de acoes com varios links (Displays): lado a lado dentro de um
+   wrapper, sem tornar a propria <td> um flex container (quebraria a tabela). */
+.produtos-acoes-linha .acoes-inline {
+  display: inline-flex;
+  gap: 0.75rem;
+}
+
+/* Menu "..." de acoes de linha (components/MenuAcoes.tsx). */
+.menu-acoes {
+  display: inline-block;
+}
+
+.menu-acoes-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.menu-acoes-botao:hover,
+.menu-acoes-botao[aria-expanded="true"] {
+  color: var(--ink-950);
+  background: var(--surface-sunken);
+  border-color: var(--border);
+}
+
+.menu-acoes-lista {
+  position: fixed;
+  z-index: 40;
+  min-width: 11rem;
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.menu-acoes-lista button {
+  padding: 0.5rem 0.7rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.menu-acoes-lista button:hover,
+.menu-acoes-lista button:focus-visible {
+  background: var(--surface-sunken);
+}
+
+.menu-acoes-lista button.perigo {
+  color: var(--danger);
+}
+
+/* Barra so com o botao de acao principal (sem filtros). */
+.barra-acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1.25rem 0;
+}
+
+.alerta.alerta-com-icone {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+/* Rotulo + campo lado a lado dentro da caixa de filtros. */
+.filtro-campo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Aviso clicavel ("8 produtos com estoque baixo"): usa as cores do .alerta, so
+   que como botao de largura total. */
+.alerta.alerta-botao {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.alerta.alerta-botao small {
+  font-weight: 500;
+  font-size: 0.86em;
+  opacity: 0.85;
+}
+
+.alerta.alerta-botao:hover {
+  border-color: var(--border-strong);
+}
+
+.alerta.alerta-botao[aria-pressed="true"] {
+  box-shadow: inset 3px 0 0 var(--accent-600);
+}
+
+/* Paginacao no front (lista de produtos). */
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0.9rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.paginacao > span:first-child {
+  margin-right: auto;
+}
+
+.paginacao button {
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-weight: 500;
+  color: var(--ink-900);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.paginacao button:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.paginacao button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .produtos-desativar {
@@ -1427,71 +1581,111 @@ main {
   margin: 1.5rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.6rem;
 }
 
-.promo-card {
+/* Lista compacta de sugestoes: uma linha por sugestao (produto, preco, motivo,
+   prioridade, botoes); observacao e validade aparecem ao expandir. */
+.promo-item {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.3rem 1.4rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
   text-align: left;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition), transform var(--transition);
 }
 
-.promo-card:hover {
+.promo-item:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
 }
 
-.promo-card-header {
+.promo-linha {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.3fr) auto minmax(0, 2fr) auto auto;
+  align-items: center;
+  gap: 0.5rem 1.1rem;
+  padding: 0.75rem 1rem;
+}
+
+.promo-toggle {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.2rem 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
-.promo-card-header strong {
-  font-family: var(--display);
-  font-size: 1.12rem;
+.promo-toggle .icone {
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.promo-toggle .icone.girado {
+  transform: rotate(90deg);
+}
+
+.promo-nome {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.promo-nome strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promo-nome small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.promo-preco-col {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.promo-motivo {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.promo-detalhes {
+  padding: 0.25rem 1rem 1rem 2.6rem;
+  border-top: 1px dashed var(--border);
+}
+
+.promo-observacao-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.promo-item > .promo-erro {
+  margin: 0 1rem 0.85rem;
 }
 
 .promo-detalhe {
   color: var(--text-muted);
   font-size: 0.88rem;
   font-weight: 400;
-}
-
-.badge-prioridade {
-  margin-left: auto;
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-pill);
-  font-family: var(--sans);
-  font-size: 0.66rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border: 1px solid transparent;
-}
-
-.badge-prioridade-alta {
-  background: var(--danger-bg);
-  border-color: var(--danger-border);
-  color: var(--danger);
-}
-
-.badge-prioridade-media {
-  background: var(--warning-bg);
-  border-color: var(--warning-border);
-  color: var(--warning);
-}
-
-.badge-prioridade-baixa {
-  background: var(--surface-muted);
-  border-color: var(--border);
-  color: var(--text-muted);
 }
 
 .promo-sinais {
@@ -1503,22 +1697,6 @@ main {
   border-radius: var(--radius-sm);
 }
 
-.promo-preco {
-  font-size: 1.05rem;
-  margin: 0.7rem 0;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Preco promocional sugerido: o lima (versao escura, que passa no contraste
-   sobre o card branco) marca o preco que cai. */
-.promo-preco strong {
-  font-family: var(--mono);
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--promo-ink);
-}
-
 /* Justificativa escrita pelo modelo: a barra de acento a esquerda marca
    que o texto e "fala" da IA, nao mensagem do sistema. */
 .promo-justificativa {
@@ -1527,13 +1705,6 @@ main {
   padding: 0.15rem 0 0.15rem 0.85rem;
   border-left: 2px solid var(--accent-400);
   line-height: 1.55;
-}
-
-.promo-modelo {
-  color: var(--text-soft);
-  font-size: 0.7rem;
-  margin: 0 0 0.85rem;
-  font-family: var(--mono);
 }
 
 /* Recusa do guard-rail de preco: fica dentro do card da sugestao (e nao
@@ -1607,6 +1778,17 @@ main {
   background: var(--danger-bg);
   border-color: var(--danger);
   color: var(--danger);
+}
+
+@media (max-width: 900px) {
+  .promo-linha {
+    grid-template-columns: 1fr auto;
+  }
+
+  .promo-toggle,
+  .promo-motivo {
+    grid-column: 1 / -1;
+  }
 }
 
 /* --- Responsivo ---------------------------------------------------------- */
@@ -1755,7 +1937,7 @@ main {
 }
 
 .caixa-total {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.4rem;
   font-weight: 700;
   text-align: right;
@@ -1838,12 +2020,11 @@ main {
 }
 
 .kpi-valor {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1.55rem;
   letter-spacing: -0.02em;
   font-weight: 700;
   color: var(--ink-950);
-  font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
 
@@ -1986,7 +2167,7 @@ main {
 }
 
 .grafico-rotulo {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   fill: var(--text-soft);
 }
@@ -2034,31 +2215,6 @@ main {
   font-size: 0.9rem;
 }
 
-/* Selo de promocao (em andamento / em promocao): lima. E o mesmo selo da
-   linha "sugestao pendente" da tabela de produtos, que NAO e promocao ainda --
-   por isso o modificador .badge-pendente logo abaixo, em petroleo. */
-.badge-em-andamento {
-  display: inline-block;
-  margin-left: 0.4rem;
-  padding: 0.1rem 0.55rem;
-  border-radius: var(--radius-pill);
-  background: var(--promo-bg);
-  border: 1px solid var(--promo-border);
-  color: var(--promo-ink);
-  font-family: var(--sans);
-  font-size: 0.66rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.badge-em-andamento.badge-pendente {
-  background: var(--accent-50);
-  border-color: var(--accent-200);
-  color: var(--accent-text);
-}
-
 .variacao-positiva {
   color: var(--success);
   font-weight: 600;
@@ -2072,8 +2228,236 @@ main {
 }
 
 .celula-mono {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
+}
+
+/* --- Componentes compartilhados ------------------------------------------- */
+
+/* Texto so para leitor de tela. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Icones de traco (components/Icone.tsx): herdam cor e tamanho do texto. */
+.icone {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.14em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icone .icone-cheio,
+.icone-cheio {
+  fill: currentColor;
+  stroke-width: 1;
+}
+
+/* Badge: um tom por significado. `promo` (lima) so para promocao ativa. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.badge-neutral {
+  background: var(--neutral-bg);
+  border-color: var(--neutral-border);
+  color: var(--neutral-strong);
+}
+
+.badge-primary {
+  background: var(--accent-50);
+  border-color: var(--accent-200);
+  color: var(--accent-text);
+}
+
+.badge-promo {
+  background: var(--promo-bg);
+  border-color: var(--promo-border);
+  color: var(--promo-ink);
+}
+
+.badge-warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+/* Badge ao lado do nome do produto. */
+.tabela-estoque td .badge,
+.ind-lista-nome .badge {
+  margin-left: 0.4rem;
+}
+
+/* Variacao de preco: queda em lima (promo), alta em vermelho. */
+.preco-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 600;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.preco-delta-queda {
+  color: var(--promo-ink);
+}
+
+.preco-delta-alta {
+  color: var(--danger);
+}
+
+.preco-delta-zero {
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+/* Preco antigo riscado + novo em lima. */
+.preco-promo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.preco-promo-antigo {
+  color: var(--text-soft);
+  font-size: 0.86em;
+  text-decoration-thickness: 1px;
+}
+
+.preco-promo-novo {
+  color: var(--promo-ink);
+  font-weight: 600;
+}
+
+/* Skeleton de carregamento. Shimmer curto; com prefers-reduced-motion o corte
+   de animacao do index.css deixa so o bloco cinza estatico. */
+.skeleton-bloco {
+  display: block;
+  height: 0.8rem;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 25%,
+    var(--surface-muted) 50%,
+    var(--surface-sunken) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-brilho 1.3s ease-in-out infinite;
+}
+
+@keyframes skeleton-brilho {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-tabela {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.skeleton-cabecalho {
+  padding: 0.85rem 0.9rem;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.skeleton-cabecalho .skeleton-bloco {
+  width: 40%;
+  height: 0.65rem;
+}
+
+.skeleton-linha {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.95rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-linha:last-child {
+  border-bottom: none;
+}
+
+.skeleton-col-larga {
+  flex: 3;
+}
+
+.skeleton-col-media {
+  flex: 2;
+}
+
+.skeleton-col-curta {
+  flex: 1;
+}
+
+.skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 0.9rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-linha-curta {
+  width: 45%;
+}
+
+.skeleton-linha-valor {
+  width: 70%;
+  height: 1.6rem;
+}
+
+.skeleton-linha-media {
+  width: 60%;
 }
 
 /* --- Login --------------------------------------------------------------- */
@@ -2138,7 +2522,8 @@ main {
 
 .login-descricao {
   max-width: 36rem;
-  margin: clamp(40px, 17.2vh, 200px) 0 0;
+  /* Subtitulo colado ao titulo (antes havia um vao de ate 200px). */
+  margin: 1.1rem 0 0;
   font-size: 1.1rem;
   line-height: 1.55;
   color: var(--cinza-400);
@@ -2274,6 +2659,28 @@ main {
   margin: 1rem 0 0;
 }
 
+/* Mensagem de campo obrigatorio, logo abaixo do campo (substitui o balao
+   nativo do navegador). */
+.login-form .login-erro-campo {
+  margin: 0.4rem 0 0;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--danger);
+}
+
+.login-form input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* Reserva a altura da linha para o botao nao pular quando o aviso aparece. */
+.login-aviso-demora {
+  min-height: 1.3rem;
+  margin: 0.7rem 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
 .login-entrar {
   height: 47px;
   margin-top: 1.42rem;
@@ -2348,6 +2755,63 @@ main {
   }
 }
 
+/* --- Pagina 404 ------------------------------------------------------------ */
+
+.pagina-404 {
+  max-width: 28rem;
+  margin: clamp(1rem, 8vh, 4rem) auto 0;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--chrome-text);
+}
+
+.pagina-404-logo {
+  display: block;
+  height: 40px;
+  width: auto;
+  margin: 0 auto 1.5rem;
+}
+
+.pagina-404-codigo {
+  margin: 0;
+  font-size: 3.2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--teal);
+}
+
+.pagina-404 h1 {
+  margin: 0.6rem 0 0.4rem;
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.pagina-404 p:not(.pagina-404-codigo) {
+  color: var(--chrome-text-soft);
+}
+
+.pagina-404-botao {
+  display: inline-block;
+  margin-top: 1.4rem;
+  padding: 0.65rem 1.3rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  background: var(--accent-600);
+  border: 1px solid var(--accent-600);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.pagina-404-botao:hover {
+  background: var(--accent-700);
+}
+
 /* --- Entrada de mercadoria ------------------------------------------------ */
 
 .entrada-acoes {
@@ -2417,7 +2881,6 @@ main {
 }
 
 .entrada-item-subtotal {
-  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -2450,7 +2913,6 @@ main {
 }
 
 .entrada-total strong {
-  font-family: var(--mono);
   font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
 }
@@ -2497,7 +2959,7 @@ main {
 
 .estoque-ajuste-form input[type="number"] {
   width: 7rem;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* O motivo é texto livre com sugestões: precisa caber "Erro de contagem"
@@ -2542,7 +3004,7 @@ main {
 .margem-alvo-controle input {
   width: 5rem;
   padding: 0.45rem 0.6rem;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 1rem;
   color: var(--text);
   background: var(--surface);

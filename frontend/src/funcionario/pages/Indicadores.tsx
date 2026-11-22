@@ -2,6 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api/client";
+import Badge from "../../components/Badge";
+import Icone from "../../components/Icone";
+import Skeleton from "../../components/Skeleton";
+import {
+  contar,
+  formatBRL,
+  formatBRLCompacto,
+  formatDate,
+  formatNumber,
+  formatPercent,
+  plural,
+} from "../../utils/format";
 import { useAuth } from "../../context/AuthContext";
 import { BarrasSemana, GraficoArea, Rosca } from "../components/GraficosPainel";
 import "./Indicadores.css";
@@ -116,23 +128,9 @@ interface Reposicao {
 const PRESETS = [7, 15, 30, 90];
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-function moeda(valor: string | number): string {
-  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function moedaCompacta(valor: number): string {
-  if (valor === 0) return "R$ 0";
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  });
-}
-
-function pct(valor: number | null | undefined, casas = 1): string {
-  return valor == null ? "—" : `${valor.toFixed(casas).replace(".", ",")}%`;
-}
+const moeda = formatBRL;
+const moedaCompacta = formatBRLCompacto;
+const pct = formatPercent;
 
 function dataLocal(valor: Date): string {
   const ano = valor.getFullYear();
@@ -309,7 +307,7 @@ export default function Indicadores() {
   if (!dados) {
     return (
       <div className="page ind">
-        {erro ? <p className="erro">{erro}</p> : <p className="ind-carregando">Carregando indicadores...</p>}
+        {erro ? <p className="erro">{erro}</p> : <Skeleton variante="cards" linhas={4} rotulo="Carregando indicadores" />}
       </div>
     );
   }
@@ -349,8 +347,7 @@ export default function Indicadores() {
             {funcionario ? `, ${funcionario.nome.trim().split(/\s+/)[0]}` : ""}
           </h1>
           <p>
-            Resumo da loja de {paraData(filtroDesde).toLocaleDateString("pt-BR")} a{" "}
-            {paraData(filtroAte).toLocaleDateString("pt-BR")}.
+            Resumo da loja de {formatDate(filtroDesde)} a {formatDate(filtroAte)}.
           </p>
         </div>
 
@@ -451,7 +448,7 @@ export default function Indicadores() {
                 fatias={[
                   { rotulo: "Aprovadas", valor: sugestoes.aprovadas, cor: "var(--serie)" },
                   { rotulo: "Rejeitadas", valor: sugestoes.rejeitadas, cor: "var(--danger)" },
-                  { rotulo: "Pendentes", valor: sugestoes.pendentes, cor: "var(--promo)" },
+                  { rotulo: "Pendentes", valor: sugestoes.pendentes, cor: "var(--pendente)" },
                   { rotulo: "Expiradas", valor: sugestoes.expiradas, cor: "var(--border-strong)" },
                 ]}
               />
@@ -465,7 +462,7 @@ export default function Indicadores() {
                   Rejeitadas <strong>{sugestoes.rejeitadas}</strong>
                 </li>
                 <li>
-                  <i style={{ background: "var(--promo)" }} />
+                  <i style={{ background: "var(--pendente)" }} />
                   Pendentes <strong>{sugestoes.pendentes}</strong>
                 </li>
                 <li>
@@ -488,7 +485,8 @@ export default function Indicadores() {
           )}
           {sugestoes.pendentes > 0 && (
             <Link to="/promocoes" className="ind-chamada">
-              {sugestoes.pendentes} sugest{sugestoes.pendentes === 1 ? "ão aguarda" : "ões aguardam"} decisão →
+              {sugestoes.pendentes} {plural(sugestoes.pendentes, "sugestão aguarda", "sugestões aguardam")} decisão{" "}
+              <Icone nome="seta" />
             </Link>
           )}
         </Cartao>
@@ -509,20 +507,20 @@ export default function Indicadores() {
           />
           <Kpi
             rotulo="Pedidos"
-            valor={String(dados.pedidos_periodo)}
+            valor={formatNumber(dados.pedidos_periodo)}
             apoio="no período"
             icone={<path d="M5 12.5l4.5 4.5L19 7.5" />}
           />
           <Kpi
             rotulo="Unidades vendidas"
-            valor={String(dados.unidades_periodo)}
+            valor={formatNumber(dados.unidades_periodo)}
             apoio={`melhor dia: ${melhorDia.valor > 0 ? melhorDia.rotulo : "—"}`}
             icone={<path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5zM3.5 7.5L12 12l8.5-4.5M12 12v9" />}
           />
         </div>
         {fracaoSemCusto > 0.5 && (
           <p className="ind-aviso span-12">
-            {fracaoSemCusto.toFixed(0)}% da receita vem de produtos sem custo cadastrado — a margem está
+            {formatPercent(fracaoSemCusto, 0)} da receita vem de produtos sem custo cadastrado — a margem está
             superestimada.
           </p>
         )}
@@ -547,7 +545,9 @@ export default function Indicadores() {
           ) : !reposicao ? (
             <Vazio>Calculando...</Vazio>
           ) : itensRepor.length === 0 ? (
-            <Vazio>Nenhum produto em risco de ruptura. 🎉</Vazio>
+            <Vazio>
+              <Icone nome="check" /> Nenhum produto em risco de ruptura.
+            </Vazio>
           ) : (
             <>
               <ul className="ind-lista">
@@ -560,10 +560,12 @@ export default function Indicadores() {
                         <span className="ind-lista-nome">
                           {i.nome}
                           {i.marca && <small> · {i.marca}</small>}
-                          {i.promocao_ativa && <span className="badge-em-andamento">em promoção</span>}
+                          {i.promocao_ativa && <Badge tone="promo">Em promoção</Badge>}
                         </span>
                         <span className={`ind-chip ${ruptura ? "perigo" : "alerta"}`}>
-                          {ruptura ? "Sem estoque" : `${Math.max(Math.floor(i.dias_de_estoque_restante), 0)} dias`}
+                          {ruptura
+                            ? "Sem estoque"
+                            : contar(Math.max(Math.floor(i.dias_de_estoque_restante), 0), "dia", "dias")}
                         </span>
                       </div>
                       <div className="ind-trilho">
@@ -573,15 +575,15 @@ export default function Indicadores() {
                         />
                       </div>
                       <small className="ind-lista-detalhe">
-                        {i.estoque} em estoque · vende {i.giro_diario.toFixed(1).replace(".", ",")}/dia · sugestão:
-                        comprar {i.quantidade_sugerida}
+                        {formatNumber(i.estoque)} em estoque · vende {formatNumber(i.giro_diario, 1)}/dia · sugestão:
+                        comprar {formatNumber(i.quantidade_sugerida)}
                       </small>
                     </li>
                   );
                 })}
               </ul>
               <p className="ind-rodape">
-                {reposicao.itens.length} produto{reposicao.itens.length === 1 ? "" : "s"} · compra estimada{" "}
+                {contar(reposicao.itens.length, "produto", "produtos")} · compra estimada{" "}
                 <strong>{moeda(reposicao.custo_total_estimado)}</strong>
               </p>
             </>
@@ -597,7 +599,7 @@ export default function Indicadores() {
             totalParado > 0 ? (
               <div className="ind-hero-total">
                 <strong>{moeda(totalParado)}</strong>
-                <span>{parados.length} produtos</span>
+                <span>{contar(parados.length, "produto", "produtos")}</span>
               </div>
             ) : undefined
           }
@@ -612,10 +614,8 @@ export default function Indicadores() {
                     <span className="ind-lista-nome">
                       {p.nome}
                       {p.marca && <small> · {p.marca}</small>}
-                      {p.promocao_ativa && <span className="badge-em-andamento">em promoção</span>}
-                      {p.tem_sugestao_pendente && (
-                        <span className="badge-em-andamento badge-pendente">sugestão pendente</span>
-                      )}
+                      {p.promocao_ativa && <Badge tone="promo">Em promoção</Badge>}
+                      {p.tem_sugestao_pendente && <Badge tone="primary">Sugestão pendente</Badge>}
                     </span>
                     <strong title={p.custo_estimado ? "Custo não cadastrado: estimado como metade do preço" : undefined}>
                       {moeda(p.valor_parado)}
@@ -629,8 +629,10 @@ export default function Indicadores() {
                     />
                   </div>
                   <small className="ind-lista-detalhe">
-                    {p.estoque} em estoque ·{" "}
-                    {p.dias_sem_venda == null ? "nunca vendeu" : `sem venda há ${p.dias_sem_venda} dias`}
+                    {formatNumber(p.estoque)} em estoque ·{" "}
+                    {p.dias_sem_venda == null
+                      ? "nunca vendeu"
+                      : `sem venda há ${contar(p.dias_sem_venda, "dia", "dias")}`}
                   </small>
                 </li>
               ))}
@@ -674,7 +676,7 @@ export default function Indicadores() {
                   <li key={b.rotulo}>
                     <div className="ind-lista-linha">
                       <span className="ind-lista-nome">{b.rotulo}</span>
-                      <strong>{b.valor ? `${Number(b.valor).toFixed(1).replace(".", ",")}%` : "—"}</strong>
+                      <strong>{b.valor ? formatPercent(b.valor, 1) : "—"}</strong>
                     </div>
                     <div className="ind-trilho">
                       <div

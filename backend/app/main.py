@@ -16,6 +16,7 @@ from app.routers import (
     products,
     promotions,
     public_catalog,
+    simulation,
     stock,
 )
 
@@ -79,3 +80,4 @@ app.include_router(price_history.router)
 app.include_router(pricing.router)
 app.include_router(analytics.router)
 app.include_router(displays.router)
+app.include_router(simulation.router)

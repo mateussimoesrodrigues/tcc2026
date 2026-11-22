@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { ApiError, apiFetch } from "../../api/client";
+import Badge, { type TomBadge } from "../../components/Badge";
+import Icone from "../../components/Icone";
+import { PromoPrice } from "../../components/Preco";
+import Skeleton from "../../components/Skeleton";
+import { contar, formatBRL, formatDateTime, formatPercent, formatPercentFracao } from "../../utils/format";
 
 interface SinaisDetectados {
   dias_sem_venda: number | null;
@@ -69,13 +74,13 @@ function mensagemErroPreco({ codigo, mensagem, detalhes }: ErroPreco): string {
         return "Produto sem custo cadastrado — cadastre o custo em Produtos antes de promover.";
       }
       return (
-        `Preço abaixo do piso de R$ ${detalhes.piso} ` +
-        `(custo R$ ${detalhes.custo} + margem mínima de ${detalhes.margem_minima_percentual}%). ` +
+        `Preço abaixo do piso de ${formatBRL(detalhes.piso as string | number)} ` +
+        `(custo ${formatBRL(detalhes.custo as string | number)} + margem mínima de ${formatPercent(detalhes.margem_minima_percentual as string | number, 0)}). ` +
         `Ajuste o custo em Produtos ou rejeite a sugestão.`
       );
     case "promocao_ja_ativa":
       return detalhes.expira_em
-        ? `Este produto já está em promoção até ${new Date(String(detalhes.expira_em)).toLocaleString("pt-BR")}.`
+        ? `Este produto já está em promoção até ${formatDateTime(String(detalhes.expira_em))}.`
         : "Este produto já está em promoção.";
     default:
       return mensagem;
@@ -89,20 +94,26 @@ interface GerarResposta {
   avaliacoes: AvaliacaoCandidato[];
 }
 
+const PRIORIDADE: Record<Sugestao["prioridade"], { rotulo: string; tom: TomBadge }> = {
+  alta: { rotulo: "Prioridade alta", tom: "danger" },
+  media: { rotulo: "Prioridade média", tom: "warning" },
+  baixa: { rotulo: "Prioridade baixa", tom: "neutral" },
+};
+
 function resumoSinais(s: SinaisDetectados): string {
   const partes: string[] = [];
   partes.push(
     s.dias_sem_venda !== null
-      ? `${s.dias_sem_venda} dia(s) sem venda`
-      : `sem venda nos últimos ${s.janela_dias} dias`
+      ? `${contar(s.dias_sem_venda, "dia", "dias")} sem venda`
+      : `sem venda nos últimos ${contar(s.janela_dias, "dia", "dias")}`
   );
   if (s.dias_de_estoque_restante !== null) {
-    partes.push(`estoque dura ~${Math.round(s.dias_de_estoque_restante)} dias no ritmo atual`);
+    partes.push(`estoque dura ~${contar(Math.round(s.dias_de_estoque_restante), "dia", "dias")} no ritmo atual`);
   }
   if (s.margem !== null) {
-    partes.push(`margem ~${(s.margem * 100).toFixed(0)}%`);
+    partes.push(`margem ~${formatPercentFracao(s.margem, 0)}`);
   }
-  partes.push(`${s.proxima_data_sazonal} em ${s.dias_ate_data_sazonal}d`);
+  partes.push(`${s.proxima_data_sazonal} em ${contar(s.dias_ate_data_sazonal, "dia", "dias")}`);
   return partes.join(" · ");
 }
 
@@ -113,7 +124,9 @@ export default function Promocoes() {
   const [gerando, setGerando] = useState(false);
   const [resumoGeracao, setResumoGeracao] = useState<GerarResposta | null>(null);
   const [observacoes, setObservacoes] = useState<Record<number, string>>({});
-  const [horasValidade, setHorasValidade] = useState<Record<number, string>>({});
+  // A validade e digitada em DIAS; a API espera horas (convertido em avaliar()).
+  const [diasValidade, setDiasValidade] = useState<Record<number, string>>({});
+  const [abertas, setAbertas] = useState<Record<number, boolean>>({});
   const [avaliando, setAvaliando] = useState<number | null>(null);
   // Erro por sugestão (e não global): o guard-rail de preço recusa uma
   // sugestão específica, e a mensagem precisa aparecer no card dela.
@@ -156,13 +169,13 @@ export default function Promocoes() {
       return resto;
     });
     try {
-      const horas = horasValidade[id]?.trim();
+      const dias = diasValidade[id]?.trim();
       await apiFetch(`/promocoes/${id}/${acao}`, {
         method: "POST",
         auth: true,
         body: JSON.stringify({
           observacao: observacoes[id] || undefined,
-          ...(acao === "aprovar" && horas ? { horas_validade: Number(horas) } : {}),
+          ...(acao === "aprovar" && dias ? { horas_validade: Number(dias) * 24 } : {}),
         }),
       });
       // Só some da lista quando deu certo de verdade -- antes o card era
@@ -200,9 +213,9 @@ export default function Promocoes() {
 
       {resumoGeracao && (
         <p className="promo-resumo-geracao">
-          {resumoGeracao.candidatos_avaliados} candidato(s) analisado(s), {resumoGeracao.sugestoes_criadas.length}{" "}
-          sugestão(ões) nova(s)
-          {resumoGeracao.falhas.length > 0 && <> — {resumoGeracao.falhas.length} não gerou sugestão</>}.
+          {contar(resumoGeracao.candidatos_avaliados, "candidato analisado", "candidatos analisados")},{" "}
+          {contar(resumoGeracao.sugestoes_criadas.length, "sugestão nova", "sugestões novas")}
+          {resumoGeracao.falhas.length > 0 && <> — {contar(resumoGeracao.falhas.length, "não gerou sugestão", "não geraram sugestão")}</>}.
         </p>
       )}
       {resumoGeracao && resumoGeracao.avaliacoes.length > 0 && (
@@ -222,67 +235,90 @@ export default function Promocoes() {
       )}
 
       {erro && <p className="erro">{erro}</p>}
-      {carregando && <p>Carregando...</p>}
+      {carregando && <Skeleton />}
 
       {!carregando && sugestoes.length === 0 && !erro && (
         <p>Nenhuma sugestão pendente no momento. Clique em "Gerar sugestões agora" para rodar o motor de IA.</p>
       )}
 
       <ul className="promo-lista">
-        {sugestoes.map((s) => (
-          <li key={s.id} className="promo-card">
-            <div className="promo-card-header">
-              <strong>{s.produto_nome}</strong>
-              {s.produto_marca && <span className="promo-detalhe"> {s.produto_marca}</span>}
-              {s.produto_tamanho && <span className="promo-detalhe"> · {s.produto_tamanho}</span>}
-              <span className={`badge-prioridade badge-prioridade-${s.prioridade}`}>{s.prioridade}</span>
-            </div>
+        {sugestoes.map((s) => {
+          const aberta = abertas[s.id] === true;
+          const prioridade = PRIORIDADE[s.prioridade];
+          const detalhe = [s.produto_marca, s.produto_tamanho].filter(Boolean).join(" · ");
+          return (
+            <li key={s.id} className="promo-item">
+              <div className="promo-linha">
+                <button
+                  type="button"
+                  className="promo-toggle"
+                  aria-expanded={aberta}
+                  aria-controls={`promo-detalhes-${s.id}`}
+                  onClick={() => setAbertas((atual) => ({ ...atual, [s.id]: !aberta }))}
+                >
+                  <Icone nome="chevron" className={aberta ? "girado" : undefined} />
+                  <span className="promo-nome">
+                    <strong>{s.produto_nome}</strong>
+                    {detalhe && <small>{detalhe}</small>}
+                  </span>
+                </button>
 
-            <p className="promo-sinais">{resumoSinais(s.sinais_detectados)}</p>
+                <div className="promo-preco-col">
+                  <PromoPrice original={s.preco_normal} promo={s.preco_sugerido} />
+                  <Badge tone="promo">−{formatPercent(s.percentual_desconto_sugerido, 0)}</Badge>
+                </div>
 
-            <p className="promo-preco">
-              R$ {s.preco_normal} → <strong>R$ {s.preco_sugerido}</strong> (
-              {Number(s.percentual_desconto_sugerido).toFixed(0)}% off)
-            </p>
+                <p className="promo-motivo">{s.justificativa_ia}</p>
 
-            <p className="promo-justificativa">"{s.justificativa_ia}"</p>
+                <Badge tone={prioridade.tom}>{prioridade.rotulo}</Badge>
 
-            <textarea
-              placeholder="Observação (opcional)"
-              value={observacoes[s.id] || ""}
-              onChange={(e) => setObservacoes((atual) => ({ ...atual, [s.id]: e.target.value }))}
-              className="promo-observacao"
-            />
+                <div className="promo-acoes">
+                  <button type="button" onClick={() => avaliar(s.id, "aprovar")} disabled={avaliando === s.id}>
+                    Aprovar
+                  </button>
+                  <button
+                    type="button"
+                    className="promo-rejeitar"
+                    onClick={() => avaliar(s.id, "rejeitar")}
+                    disabled={avaliando === s.id}
+                  >
+                    Rejeitar
+                  </button>
+                </div>
+              </div>
 
-            <label className="promo-validade">
-              Validade (horas, opcional — padrão 14 dias)
-              <input
-                type="number"
-                min="0"
-                step="0.5"
-                placeholder="ex.: 2"
-                value={horasValidade[s.id] || ""}
-                onChange={(e) => setHorasValidade((atual) => ({ ...atual, [s.id]: e.target.value }))}
-              />
-            </label>
+              {aberta && (
+                <div id={`promo-detalhes-${s.id}`} className="promo-detalhes">
+                  <p className="promo-sinais">{resumoSinais(s.sinais_detectados)}</p>
+                  <p className="promo-justificativa">"{s.justificativa_ia}"</p>
 
-            <div className="promo-acoes">
-              <button type="button" onClick={() => avaliar(s.id, "aprovar")} disabled={avaliando === s.id}>
-                Aprovar
-              </button>
-              <button
-                type="button"
-                className="promo-rejeitar"
-                onClick={() => avaliar(s.id, "rejeitar")}
-                disabled={avaliando === s.id}
-              >
-                Rejeitar
-              </button>
-            </div>
+                  <label className="promo-observacao-campo">
+                    Observação (opcional)
+                    <textarea
+                      value={observacoes[s.id] || ""}
+                      onChange={(e) => setObservacoes((atual) => ({ ...atual, [s.id]: e.target.value }))}
+                      className="promo-observacao"
+                    />
+                  </label>
 
-            {erroPorSugestao[s.id] && <p className="promo-erro">{erroPorSugestao[s.id]}</p>}
-          </li>
-        ))}
+                  <label className="promo-validade">
+                    Validade em dias (opcional — padrão 14 dias)
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="ex.: 3"
+                      value={diasValidade[s.id] || ""}
+                      onChange={(e) => setDiasValidade((atual) => ({ ...atual, [s.id]: e.target.value }))}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {erroPorSugestao[s.id] && <p className="promo-erro">{erroPorSugestao[s.id]}</p>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

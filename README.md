@@ -154,10 +154,10 @@ citar os parâmetros na monografia):
 > desde o commit `eb74d50`); o campo `origem_dados` da API está disponível
 > para reativá-lo.
 >
-> Com `ENABLE_DAILY_SALES_SIMULATOR=true`, o job diário continua acrescentando
-> vendas **simuladas** (rotuladas `simulacao_diaria`) depois da janela
-> derivada; desligue-o se quiser só dado do dataset. A versão anterior do seed
-> (catálogo da planilha da loja + 90 dias simulados) está no histórico do git.
+> A simulação de vendas e compras roda sob demanda em `POST /simulacao/executar`
+> (ver "Simulação do dia a dia da loja" mais abaixo); sem chamá-la, só há dado do
+> dataset. A versão anterior do seed (catálogo da planilha da loja + 90 dias
+> simulados) está no histórico do git.
 
 #### Avaliação do LLM (evidência experimental)
 
@@ -232,19 +232,38 @@ precisar de nenhum segredo configurado.
 > backend que não dorme, `backend/Procfile` e `railway.toml` (Railway,
 > pago) continuam no repo como alternativa.
 
-Para enriquecer o histórico durante a demonstração, existe também uma
-simulação diária opcional. Configure `ENABLE_SCHEDULER=true` e
-`ENABLE_DAILY_SALES_SIMULATOR=true`; por padrão ela roda às 23:55 no fuso
-`America/Sao_Paulo`. O horário e a semente podem ser ajustados por
-`DAILY_SALES_SIMULATION_HOUR`, `DAILY_SALES_SIMULATION_MINUTE` e
-`DAILY_SALES_SIMULATION_SEED`. A rotina cria pedidos conferidos, itens e
-saídas de estoque, respeitando o estoque disponível e promoções ativas.
-Ela também cria algumas promoções inteligentes simuladas, com sugestão
-aprovada, histórico de preço e desconto limitado pelo guard-rail de custo,
-para que o gráfico de efeito das promoções tenha dados para comparar.
-Cada data é registrada em `simulacao_venda_execucao`, portanto reiniciar o
-backend ou executar o job novamente não duplica vendas. Esses dados são
-simulados e não devem ser misturados com indicadores de operação real.
+### Simulação do dia a dia da loja (endpoint)
+
+`POST /simulacao/executar` simula **vendas e compras de mercadoria** de um dia,
+para ser chamado por um agendador externo (Agendador de Tarefas do Windows,
+GitHub Actions, cron…). Não usa login de funcionário: envie a chave de
+`SIMULATION_API_KEY` no header `X-Simulation-Key`. Sem a variável, o endpoint
+fica desligado (503); com `DADOS_SIMULADOS=false` ele é bloqueado (403), para
+nunca inventar vendas num banco real.
+
+```bash
+curl -X POST "https://SEU-BACKEND/simulacao/executar" -H "X-Simulation-Key: SUA_CHAVE"
+# parâmetros opcionais: ?dia=2026-11-20  ?dias=7 (retroativo, máx. 31)  ?semente=1 (repetível)
+```
+
+Agende no fim do expediente (ex.: 23h): os horários das vendas se espalham pelo
+dia todo. Cada dia roda uma única vez (`simulacao_venda_execucao`), então repetir
+a chamada não duplica nada. A resposta traz, por dia, pedidos, unidades, receita,
+compras, rupturas e os produtos em alta e em baixa.
+
+Nenhum dia sai igual ao anterior (`services/store_simulation_service.py`):
+
+- **Vendas:** o ritmo de cada produto vem do histórico do banco e é multiplicado por
+  dia da semana, dia de pagamento, uma onda lenta de ~5 semanas (períodos de alta e
+  de baixa da loja), sorteio de dias fracos/fortes e ruído. Cada produto tem o
+  próprio momento: em blocos de ~3 semanas ele **encalha** (~25% do normal, a
+  oportunidade de promoção para a IA) ou **bomba** (~2×). Promoção ativa aumenta a
+  demanda. As unidades viram cestas de 1 a 6 itens, com picos no almoço e no fim da tarde.
+- **Compras:** o comprador só enxerga o histórico. Visita o fornecedor sobretudo às
+  terças e quintas, repõe quando a cobertura cai abaixo de 6–14 dias, às vezes
+  esquece ou o fornecedor falha (ruptura) e às vezes compra demais (capital parado).
+  O custo varia a cada compra e o custo médio é recalculado como na entrada real.
+  As entradas ficam marcadas com `[simulacao]` na observação.
 
 Para criar dados históricos uma única vez, sem habilitar outro job, execute:
 

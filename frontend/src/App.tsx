@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 
 import Scanner from "./cliente/pages/Scanner";
 import Carrinho from "./cliente/pages/Carrinho";
@@ -12,6 +12,7 @@ import Entradas from "./funcionario/pages/Entradas";
 import Precificacao from "./funcionario/pages/Precificacao";
 import Displays from "./funcionario/pages/Displays";
 import HistoricoPrecos from "./funcionario/pages/HistoricoPrecos";
+import NaoEncontrada from "./funcionario/pages/NaoEncontrada";
 import ProtectedRoute from "./funcionario/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
@@ -115,7 +116,7 @@ const MENU_FUNCIONARIO: {
 }[] = [
   { to: "/", rotulo: "Produtos", icone: "produtos", end: true },
   { to: "/entradas", rotulo: "Entradas", icone: "entradas" },
-  { to: "/precificacao", rotulo: "Margens", icone: "margens" },
+  { to: "/precificacao", rotulo: "Margens e preços", icone: "margens" },
   { to: "/promocoes", rotulo: "Promoções", icone: "promocoes" },
   { to: "/indicadores", rotulo: "Indicadores", icone: "indicadores" },
   { to: "/historico-precos", rotulo: "Histórico", icone: "historico" },
@@ -282,6 +283,13 @@ function ConsoleShell() {
 
   const fecharSeGaveta = useCallback(() => setGavetaAberta(false), []);
 
+  // <title> da aba = nome da pagina no menu ("Margens e preços · Precix.AI").
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const item = MENU_FUNCIONARIO.find((m) => (m.end ? pathname === m.to : pathname.startsWith(m.to)));
+    document.title = funcionario && item ? `${item.rotulo} · Precix.AI` : "Precix.AI";
+  }, [pathname, funcionario]);
+
   // Esc fecha a gaveta -- ela cobre o conteudo no mobile, entao precisa da
   // mesma saida de teclado que um dialogo.
   useEffect(() => {
@@ -431,6 +439,8 @@ function ConsoleShell() {
                 </ProtectedRoute>
               }
             />
+            {/* Qualquer outro endereco: 404 (ou login, se nao ha sessao). */}
+            <Route path="*" element={<NaoEncontrada />} />
           </Routes>
         </main>
       </div>
