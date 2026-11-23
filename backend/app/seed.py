@@ -56,9 +56,10 @@ import sys
 import uuid
 from collections import Counter
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, insert, select
 
@@ -626,7 +627,9 @@ def rodar_seed(
     Tudo que le e deriva roda ANTES de qualquer escrita: CSV ausente ou erro
     na derivacao nao apaga nada."""
     caminho_csv = CAMINHO_CSV if caminho_csv is None else caminho_csv
-    hoje = hoje or datetime.now(UTC).replace(tzinfo=None)
+    # "hoje" no fuso da loja (o mesmo da simulacao diaria): em UTC, depois das 21h
+    # de Brasilia o seed registraria como executado um dia que ainda nao chegou.
+    hoje = hoje or datetime.now(ZoneInfo("America/Sao_Paulo")).replace(tzinfo=None)
     rng = random.Random(rng_seed)
     fator_porte = FATOR_PORTE if fator_porte is None else fator_porte
 
