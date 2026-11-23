@@ -1,0 +1,27 @@
+name: Simulação diária de vendas
+
+on:
+  schedule:
+    - cron: '0 2 * * *'    # 02:00 UTC = 23:00 Brasília
+  workflow_dispatch:         # permite disparar manualmente pelo botão
+
+jobs:
+  simular:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar endpoint de simulação
+        run: |
+          echo "Disparando simulação..."
+          HTTP_CODE=$(curl -sS -w "%{http_code}" -o resposta.json \
+            --max-time 300 \
+            -X POST "https://tcc2026-sujq.onrender.com/simulacao/executar?dias=2" \
+            -H "X-Simulation-Key: ${{ secrets.SIMULATION_API_KEY }}")
+          echo "HTTP $HTTP_CODE"
+          echo "Resposta:"
+          cat resposta.json
+          echo ""
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Falhou: codigo HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Sucesso."
