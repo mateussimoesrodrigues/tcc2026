@@ -324,6 +324,7 @@ function ConsoleShell() {
             aria-controls="menu-lateral"
           >
             <IconeMenu aberto={gavetaAberta} />
+            <span className="app-menu-toggle-rotulo">Menu</span>
           </button>
         )}
         <Marca />

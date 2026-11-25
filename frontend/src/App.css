@@ -464,8 +464,31 @@
    sobreposta com fundo escurecido, e fecha ao escolher a pagina (ver
    fecharSeGaveta no App.tsx). Casar este valor com LARGURA_GAVETA la. */
 @media (max-width: 900px) {
+  /* Celular: o botao precisa ser inconfundivel -- e a unica forma de chegar
+     as outras telas. Borda, rotulo "Menu" e alvo de toque de 40px. */
   .app-menu-toggle {
     display: flex;
+    width: auto;
+    min-width: 40px;
+    height: 40px;
+    gap: 0.4rem;
+    padding: 0 0.7rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--chrome-line);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .app-menu-toggle svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Conteudo largo nunca deve esticar a pagina e empurrar a barra pra fora. */
+  .app-console {
+    overflow-x: clip;
   }
 
   .app-sidebar {
@@ -474,7 +497,7 @@
     left: 0;
     bottom: 0;
     z-index: 30;
-    height: auto;
+    height: calc(100dvh - var(--nav-h));
     width: 240px;
     transform: translateX(-100%);
     transition: transform var(--transition), visibility var(--transition);
@@ -3030,5 +3053,16 @@ main {
 
   .entrada-item select {
     grid-column: 1 / -1;
+  }
+}
+
+/* Rotulo "Menu" do botao da gaveta: so no celular (o botao some acima de 900px). */
+.app-menu-toggle-rotulo {
+  line-height: 1;
+}
+
+@media (max-width: 380px) {
+  .app-menu-toggle-rotulo {
+    display: none;
   }
 }
