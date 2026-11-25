@@ -32,7 +32,7 @@ from app.services.exceptions import (
     PromocaoJaAtivaError,
 )
 
-DIAS_VALIDADE_PADRAO = 14
+DIAS_VALIDADE_PADRAO = 1
 
 _CENTAVOS = Decimal("0.01")
 _CEM = Decimal("100")

@@ -34,6 +34,17 @@ interface Sugestao {
   criado_em: string;
 }
 
+interface ProdutoEmPromocao {
+  id: number;
+  nome: string;
+  marca: string | null;
+  tamanho: string | null;
+  preco_normal: string;
+  preco_promocional: string | null;
+  promocao_ativa: boolean;
+  promocao_expira_em: string | null;
+}
+
 interface Falha {
   produto_id: number;
   nome: string;
@@ -132,6 +143,16 @@ export default function Promocoes() {
   // sugestão específica, e a mensagem precisa aparecer no card dela.
   const [erroPorSugestao, setErroPorSugestao] = useState<Record<number, string>>({});
 
+  const [ativas, setAtivas] = useState<ProdutoEmPromocao[]>([]);
+  const [finalizando, setFinalizando] = useState<number | null>(null);
+  const [erroAtivas, setErroAtivas] = useState<string | null>(null);
+
+  function carregarAtivas() {
+    apiFetch<ProdutoEmPromocao[]>("/produtos", { auth: true })
+      .then((produtos) => setAtivas(produtos.filter((p) => p.promocao_ativa)))
+      .catch(() => setErroAtivas("Não foi possível carregar as promoções ativas."));
+  }
+
   function carregar() {
     setCarregando(true);
     setErro(null);
@@ -139,9 +160,23 @@ export default function Promocoes() {
       .then(setSugestoes)
       .catch(() => setErro("Não foi possível carregar as sugestões."))
       .finally(() => setCarregando(false));
+    carregarAtivas();
   }
 
   useEffect(carregar, []);
+
+  async function finalizarPromocao(produtoId: number) {
+    setFinalizando(produtoId);
+    setErroAtivas(null);
+    try {
+      await apiFetch(`/promocoes/produtos/${produtoId}/finalizar`, { method: "POST", auth: true });
+      setAtivas((atual) => atual.filter((p) => p.id !== produtoId));
+    } catch {
+      setErroAtivas("Não foi possível finalizar a promoção.");
+    } finally {
+      setFinalizando(null);
+    }
+  }
 
   // Unico gatilho de geracao no sistema: nao ha job por tempo criando
   // sugestoes sozinho (ver backend/app/jobs/scheduler.py). O endpoint
@@ -302,7 +337,7 @@ export default function Promocoes() {
                   </label>
 
                   <label className="promo-validade">
-                    Validade em dias (opcional — padrão 14 dias)
+                    Validade em dias (opcional — padrão 1 dia)
                     <input
                       type="number"
                       min="0"
@@ -316,6 +351,41 @@ export default function Promocoes() {
               )}
 
               {erroPorSugestao[s.id] && <p className="promo-erro">{erroPorSugestao[s.id]}</p>}
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2>Promoções ativas</h2>
+      {erroAtivas && <p className="erro">{erroAtivas}</p>}
+      {ativas.length === 0 && !erroAtivas && <p>Nenhum produto em promoção no momento.</p>}
+      <ul className="promo-lista">
+        {ativas.map((p) => {
+          const detalhe = [p.marca, p.tamanho].filter(Boolean).join(" · ");
+          return (
+            <li key={p.id} className="promo-item">
+              <div className="promo-linha">
+                <span className="promo-nome">
+                  <strong>{p.nome}</strong>
+                  {detalhe && <small>{detalhe}</small>}
+                </span>
+                <div className="promo-preco-col">
+                  {p.preco_promocional && <PromoPrice original={p.preco_normal} promo={p.preco_promocional} />}
+                </div>
+                <p className="promo-motivo">
+                  {p.promocao_expira_em ? `Até ${formatDateTime(p.promocao_expira_em)}` : "Sem data de término"}
+                </p>
+                <div className="promo-acoes">
+                  <button
+                    type="button"
+                    className="promo-rejeitar"
+                    onClick={() => finalizarPromocao(p.id)}
+                    disabled={finalizando === p.id}
+                  >
+                    Finalizar promoção
+                  </button>
+                </div>
+              </div>
             </li>
           );
         })}

@@ -115,6 +115,10 @@ class PromocaoJaAtivaError(PrecoPromocionalInvalidoError):
     codigo = "promocao_ja_ativa"
 
 
+class PromocaoNaoAtivaError(Exception):
+    """Tentativa de finalizar a promocao de um produto que nao esta em promocao."""
+
+
 class PedidoNaoEncontradoError(Exception):
     pass
 

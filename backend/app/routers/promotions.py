@@ -14,10 +14,13 @@ from app.schemas.promocao import (
     SugestaoRead,
     AvaliacaoCandidato,
 )
+from app.schemas.produto import ProdutoRead
 from app.services import promotion_service
 from app.services.exceptions import (
     PrecoPromocionalInvalidoError,
+    ProdutoNaoEncontradoError,
     PromocaoJaAtivaError,
+    PromocaoNaoAtivaError,
     SugestaoJaAvaliadaError,
     SugestaoNaoEncontradaError,
 )
@@ -61,6 +64,21 @@ def expirar_agora(db: Session = Depends(get_db)):
     o LLM."""
     total = promotion_service.expirar_promocoes_vencidas(db)
     return {"promocoes_revertidas": total}
+
+
+@router.post("/produtos/{produto_id}/finalizar", response_model=ProdutoRead)
+def finalizar(
+    produto_id: int,
+    db: Session = Depends(get_db),
+    funcionario: Funcionario = Depends(get_current_funcionario),
+):
+    """Encerra a promocao ativa do produto na hora e volta ao preco normal."""
+    try:
+        return promotion_service.finalizar_promocao(db, produto_id, funcionario.id)
+    except ProdutoNaoEncontradoError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Produto nao encontrado")
+    except PromocaoNaoAtivaError:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Produto nao esta em promocao")
 
 
 @router.get("", response_model=list[SugestaoRead])

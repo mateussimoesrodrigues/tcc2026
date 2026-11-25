@@ -17,6 +17,8 @@ from app.services import mqtt_publisher, price_service
 from app.services.exceptions import (
     LLMIndisponivelError,
     PrecoPromocionalInvalidoError,
+    ProdutoNaoEncontradoError,
+    PromocaoNaoAtivaError,
     RespostaLLMInvalidaError,
     SugestaoJaAvaliadaError,
     SugestaoNaoEncontradaError,
@@ -204,6 +206,21 @@ def rejeitar(
     db.commit()
     db.refresh(sugestao)
     return sugestao
+
+
+def finalizar_promocao(db: Session, produto_id: int, funcionario_id: int | None = None) -> Produto:
+    """Encerra na hora a promocao ativa de um produto, sem esperar o prazo:
+    o preco volta pro `preco_normal` (historico `fim_promocao`) e as
+    etiquetas sao atualizadas."""
+    produto = db.get(Produto, produto_id)
+    if produto is None:
+        raise ProdutoNaoEncontradoError(str(produto_id))
+    if not produto.promocao_ativa:
+        raise PromocaoNaoAtivaError(str(produto_id))
+
+    produto = price_service.reverter_promocao(db, produto_id, alterado_por=funcionario_id)
+    mqtt_publisher.publicar_estado_dos_displays(db, produto_id)
+    return produto
 
 
 def expirar_promocoes_vencidas(db: Session) -> int:

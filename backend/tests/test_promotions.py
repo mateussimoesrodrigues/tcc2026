@@ -222,3 +222,42 @@ def test_expirar_promocoes_vencidas_reverte_preco(db_session):
     db_session.refresh(produto)
     assert produto.promocao_ativa is False
     assert produto.preco_vigente == Decimal("30.00")
+
+
+def test_finalizar_promocao_volta_ao_preco_normal(auth_client, db_session):
+    from app.services import price_service
+
+    produto = Produto(nome="Produto Em Promo", preco_normal=Decimal("30.00"))
+    db_session.add(produto)
+    db_session.flush()
+    db_session.add(Estoque(produto_id=produto.id, quantidade=5))
+    db_session.commit()
+    price_service.aplicar_promocao(db_session, produto.id, Decimal("24.00"))
+
+    resposta = auth_client.post(f"/promocoes/produtos/{produto.id}/finalizar")
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["promocao_ativa"] is False
+    assert Decimal(corpo["preco_vigente"]) == Decimal("30.00")
+
+    # segunda chamada: ja nao ha promocao
+    assert auth_client.post(f"/promocoes/produtos/{produto.id}/finalizar").status_code == 409
+
+
+def test_finalizar_promocao_produto_inexistente_retorna_404(auth_client):
+    assert auth_client.post("/promocoes/produtos/999/finalizar").status_code == 404
+
+
+def test_validade_padrao_da_promocao_e_um_dia(db_session):
+    from app.services import price_service
+
+    produto = Produto(nome="Produto Validade", preco_normal=Decimal("30.00"))
+    db_session.add(produto)
+    db_session.flush()
+    db_session.add(Estoque(produto_id=produto.id, quantidade=5))
+    db_session.commit()
+    price_service.aplicar_promocao(db_session, produto.id, Decimal("24.00"))
+    db_session.refresh(produto)
+
+    restante = produto.promocao_expira_em - datetime.now(UTC).replace(tzinfo=None)
+    assert timedelta(hours=23) < restante <= timedelta(days=1)

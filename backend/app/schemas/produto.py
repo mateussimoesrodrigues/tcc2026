@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -79,6 +80,7 @@ class ProdutoRead(BaseModel):
     preco_normal: Decimal
     preco_promocional: Decimal | None
     promocao_ativa: bool
+    promocao_expira_em: datetime | None = None
     ativo: bool
     preco_vigente: Decimal
     codigos: list[ProdutoCodigoRead] = []
