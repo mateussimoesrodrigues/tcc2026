@@ -29,6 +29,8 @@ type PrecoMercado =
       max: number;
       n_amostras: number;
       fonte: string;
+      // Ausente nas sugestões geradas antes de as lojas serem guardadas.
+      lojas?: string[];
       consultado_em: string;
     };
 
@@ -320,6 +322,8 @@ export default function Promocoes() {
           const prioridade = PRIORIDADE[s.prioridade];
           const detalhe = [s.produto_marca, s.produto_tamanho].filter(Boolean).join(" · ");
           const mercado = resumoMercado(s.sinais_detectados);
+          const precoMercado = s.sinais_detectados.preco_mercado;
+          const lojas = precoMercado?.status === "ok" ? (precoMercado.lojas ?? []) : [];
           return (
             <li key={s.id} className="promo-item">
               <div className="promo-linha">
@@ -373,7 +377,17 @@ export default function Promocoes() {
               {aberta && (
                 <div id={`promo-detalhes-${s.id}`} className="promo-detalhes">
                   <p className="promo-sinais">{resumoSinais(s.sinais_detectados)}</p>
-                  {mercado && <p className="promo-sinais">{mercado}</p>}
+                  {mercado && (
+                    <p className="promo-sinais">
+                      {mercado}
+                      {lojas.length > 0 && (
+                        <>
+                          <br />
+                          Lojas dos preços usados: {lojas.join(", ")}
+                        </>
+                      )}
+                    </p>
+                  )}
                   <p className="promo-justificativa">"{s.justificativa_ia}"</p>
 
                   <label className="promo-observacao-campo">

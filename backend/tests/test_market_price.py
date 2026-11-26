@@ -41,12 +41,16 @@ def _produto(db, *, preco="20.00", custo=None, marca=None, nome="Cola Branca"):
     return produto
 
 
+def _anuncios(*precos):
+    return [market_price.Anuncio(Decimal(p)) for p in precos]
+
+
 # --- faixa e parsing ---------------------------------------------------
 
 
 def test_faixa_descarta_outliers_extremos_e_usa_mediana():
     faixa = market_price.calcular_faixa(
-        [Decimal(v) for v in ("0.50", "10", "11", "12", "14", "500")], min_amostras=3
+        _anuncios("0.50", "10", "11", "12", "14", "500"), min_amostras=3
     )
     assert (faixa.minimo, faixa.mediana, faixa.maximo, faixa.n_amostras) == (
         Decimal("10.00"),
@@ -57,8 +61,8 @@ def test_faixa_descarta_outliers_extremos_e_usa_mediana():
 
 
 def test_faixa_com_poucas_amostras_nao_serve_de_referencia():
-    assert market_price.calcular_faixa([Decimal("10"), Decimal("11")], min_amostras=3) is None
-    assert market_price.calcular_faixa([Decimal("10")], min_amostras=1) is None
+    assert market_price.calcular_faixa(_anuncios("10", "11"), min_amostras=3) is None
+    assert market_price.calcular_faixa(_anuncios("10"), min_amostras=1) is None
     assert market_price.calcular_faixa([], min_amostras=1) is None
 
 
@@ -75,6 +79,27 @@ def test_faixa_com_poucas_amostras_nao_serve_de_referencia():
 )
 def test_preco_em_reais(texto, esperado):
     assert market_price._preco_em_reais(texto) == esperado
+
+
+def test_lojas_so_dos_precos_usados_e_sem_repetir():
+    anuncios = [
+        market_price.Anuncio(Decimal(preco), loja)
+        for preco, loja in (("10", "Loja A"), ("11", "Loja B"), ("12", "Loja A"), ("13", None), ("500", "Fora"))
+    ]
+    assert market_price.calcular_faixa(anuncios, min_amostras=3).lojas == ("Loja A", "Loja B")
+
+
+def test_lojas_do_serper_vao_pro_registro_e_pros_sinais(db_session):
+    itens = [{"price": f"R$ {p},00", "source": loja} for p, loja in ((8, "Kalunga"), (9, " Shopee "), (10, ""))]
+    registro = market_price.obter_preco_mercado(
+        db_session,
+        _produto(db_session),
+        _buscador(lambda r: httpx.Response(200, json={"shopping": itens}), **COM_SERPER),
+    )
+    db_session.commit()
+
+    sinais, _ = market_price.para_sinais(registro, Decimal("20"))
+    assert sinais["lojas"] == ["Kalunga", "Shopee"]
 
 
 # --- fontes ------------------------------------------------------------

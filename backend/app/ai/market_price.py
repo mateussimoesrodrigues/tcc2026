@@ -60,17 +60,26 @@ class FaixaMercado:
     minimo: Decimal
     maximo: Decimal
     n_amostras: int
+    # Lojas dos precos que entraram na conta, sem repetir, na ordem da busca.
+    lojas: tuple[str, ...] = ()
 
 
-def calcular_faixa(precos: list[Decimal], *, min_amostras: int) -> FaixaMercado | None:
+@dataclass(frozen=True)
+class Anuncio:
+    preco: Decimal
+    loja: str | None = None
+
+
+def calcular_faixa(anuncios: list[Anuncio], *, min_amostras: int) -> FaixaMercado | None:
     """Descarta outliers extremos e resume o resto. `None` quando sobram
     menos de `min_amostras` -- pouca amostra nao e referencia de mercado."""
-    validos = [p for p in precos if p > 0]
+    validos = [a for a in anuncios if a.preco > 0]
     if not validos:
         return None
 
-    centro = median(validos)
-    filtrados = [p for p in validos if centro / FATOR_OUTLIER <= p <= centro * FATOR_OUTLIER]
+    centro = median(a.preco for a in validos)
+    usados = [a for a in validos if centro / FATOR_OUTLIER <= a.preco <= centro * FATOR_OUTLIER]
+    filtrados = [a.preco for a in usados]
     # Nunca menos de 2, mesmo que a configuracao peca: preco unico nao e faixa.
     if len(filtrados) < max(min_amostras, 2):
         return None
@@ -80,6 +89,7 @@ def calcular_faixa(precos: list[Decimal], *, min_amostras: int) -> FaixaMercado 
         minimo=quantizar_preco(min(filtrados)),
         maximo=quantizar_preco(max(filtrados)),
         n_amostras=len(filtrados),
+        lojas=tuple(dict.fromkeys(a.loja for a in usados if a.loja)),
     )
 
 
@@ -122,7 +132,7 @@ class BuscadorMercado:
         for fonte in self.fontes_disponiveis():
             ultima = fonte
             try:
-                precos = self._buscar_ml(consulta) if fonte == FONTE_ML else self._buscar_serper(consulta)
+                anuncios = self._buscar_ml(consulta) if fonte == FONTE_ML else self._buscar_serper(consulta)
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (401, 403):
                     self._recusadas.add(fonte)
@@ -133,7 +143,7 @@ class BuscadorMercado:
                 continue
 
             faixa = calcular_faixa(
-                precos[: self._settings.preco_mercado_n_resultados],
+                anuncios[: self._settings.preco_mercado_n_resultados],
                 min_amostras=self._settings.preco_mercado_min_amostras,
             )
             if faixa is not None:
@@ -158,7 +168,7 @@ class BuscadorMercado:
             self._token_ml = resposta.json()["access_token"]
         return self._token_ml
 
-    def _buscar_ml(self, consulta: str) -> list[Decimal]:
+    def _buscar_ml(self, consulta: str) -> list[Anuncio]:
         resposta = self._client.get(
             ML_BUSCA_URL,
             headers={"Authorization": f"Bearer {self._obter_token_ml()}"},
@@ -166,22 +176,29 @@ class BuscadorMercado:
         )
         resposta.raise_for_status()
         return [
-            Decimal(str(item["price"]))
+            Anuncio(Decimal(str(item["price"])), "Mercado Livre")
             for item in resposta.json()["results"]
             if item.get("price") is not None
             and item.get("currency_id", "BRL") == "BRL"
             and item.get("condition") != "used"
         ]
 
-    def _buscar_serper(self, consulta: str) -> list[Decimal]:
+    def _buscar_serper(self, consulta: str) -> list[Anuncio]:
         resposta = self._client.post(
             SERPER_URL,
             headers={"X-API-KEY": self._settings.serper_api_key},
             json={"q": consulta, "gl": "br", "hl": "pt-br"},
         )
         resposta.raise_for_status()
-        precos = (_preco_em_reais(item.get("price")) for item in resposta.json().get("shopping", []))
-        return [p for p in precos if p is not None]
+        itens = (
+            (_preco_em_reais(item.get("price")), _nome_loja(item.get("source")))
+            for item in resposta.json().get("shopping", [])
+        )
+        return [Anuncio(preco, loja) for preco, loja in itens if preco is not None]
+
+
+def _nome_loja(valor: object) -> str | None:
+    return (valor.strip() or None) if isinstance(valor, str) else None
 
 
 def _agora() -> datetime:
@@ -231,6 +248,7 @@ def obter_preco_mercado(db: Session, produto: Produto, buscador: BuscadorMercado
     registro.preco_max = faixa.maximo if faixa else None
     registro.n_amostras = faixa.n_amostras if faixa else 0
     registro.fonte = fonte
+    registro.lojas = list(faixa.lojas) if faixa else None
     registro.consultado_em = _agora()
     return registro
 
@@ -249,6 +267,7 @@ def para_sinais(registro: PrecoMercado | None, preco_atual: Decimal) -> tuple[di
         "max": float(registro.preco_max),
         "n_amostras": registro.n_amostras,
         "fonte": registro.fonte,
+        "lojas": registro.lojas or [],
         "consultado_em": registro.consultado_em.isoformat(),
     }
     return dados, round(float(preco_atual / registro.preco_mediana), 4)

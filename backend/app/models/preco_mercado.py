@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -35,6 +35,8 @@ class PrecoMercado(Base):
     preco_max: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     n_amostras: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     fonte: Mapped[str] = mapped_column(String(40), nullable=False)
+    # Nomes das lojas dos precos usados na faixa. `fonte` e a API consultada.
+    lojas: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     status: Mapped[StatusPrecoMercado] = mapped_column(
         Enum(StatusPrecoMercado, values_callable=lambda e: [s.value for s in e]), nullable=False
     )
