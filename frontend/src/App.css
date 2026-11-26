@@ -1731,9 +1731,30 @@ main {
   overflow-wrap: anywhere;
 }
 
-.promo-anuncios a {
+/* Preenchido = link que veio da busca; so contorno tracejado = pesquisa
+   nova no Google. */
+.promo-anuncios a.promo-anuncio-original,
+.promo-anuncios a.promo-anuncio-pesquisar {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.promo-anuncios a.promo-anuncio-original {
+  background: var(--accent-400);
+  border-color: var(--accent-400);
+  color: #0b1a17;
+  font-weight: 600;
+}
+
+.promo-anuncios a.promo-anuncio-pesquisar {
+  border-style: dashed;
   color: inherit;
-  text-decoration: underline;
 }
 
 /* Justificativa escrita pelo modelo: a barra de acento a esquerda marca

@@ -176,6 +176,19 @@ function resumoMercado({ preco_mercado: m, posicao_mercado: posicao }: SinaisDet
   return partes.join(" · ");
 }
 
+// Atalho pros anúncios que vieram sem link: pesquisa título + loja já na aba
+// Shopping (`udm=28`). É uma busca nova, não o anúncio usado na conta.
+function urlPesquisaShopping({ titulo, loja }: AnuncioMercado): string | null {
+  if (!titulo) return null;
+  const params = new URLSearchParams({
+    q: [titulo, loja].filter(Boolean).join(" "),
+    udm: "28",
+    gl: "br",
+    hl: "pt-BR",
+  });
+  return `https://www.google.com/search?${params}`;
+}
+
 export default function Promocoes() {
   const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -332,7 +345,10 @@ export default function Promocoes() {
           const mercado = resumoMercado(s.sinais_detectados);
           const precoMercado = s.sinais_detectados.preco_mercado;
           const lojas = precoMercado?.status === "ok" ? (precoMercado.lojas ?? []) : [];
-          const anuncios = precoMercado?.status === "ok" ? (precoMercado.anuncios ?? []) : [];
+          // Os que têm o link original vêm primeiro.
+          const anuncios = [...(precoMercado?.status === "ok" ? (precoMercado.anuncios ?? []) : [])].sort(
+            (a, b) => Number(Boolean(b.link)) - Number(Boolean(a.link))
+          );
           return (
             <li key={s.id} className="promo-item">
               <div className="promo-linha">
@@ -401,15 +417,29 @@ export default function Promocoes() {
                     <ul className="promo-anuncios">
                       {anuncios.map((a, i) => {
                         const rotulo = a.titulo ?? "Anúncio sem título";
+                        const pesquisa = a.link ? null : urlPesquisaShopping(a);
                         return (
                           <li key={i}>
-                            <strong>{formatBRL(a.preco)}</strong> · {a.loja ?? "Loja não informada"} ·{" "}
-                            {a.link ? (
-                              <a href={a.link} target="_blank" rel="noopener noreferrer">
-                                {rotulo}
+                            <strong>{formatBRL(a.preco)}</strong> · {a.loja ?? "Loja não informada"} · {rotulo}
+                            {a.link && (
+                              <a
+                                className="promo-anuncio-original"
+                                href={a.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Anúncio original
                               </a>
-                            ) : (
-                              rotulo
+                            )}
+                            {pesquisa && (
+                              <a
+                                className="promo-anuncio-pesquisar"
+                                href={pesquisa}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Pesquisar no Google
+                              </a>
                             )}
                           </li>
                         );

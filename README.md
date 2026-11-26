@@ -181,6 +181,9 @@ não mudam, e o piso continua sendo custo + margem mínima.
 - **Anúncios usados:** preço, loja, título e link (quando a fonte informa) de
   cada anúncio que entrou na faixa são guardados e listados nos detalhes da
   sugestão. O preço é o do momento da consulta; a página pode mudar depois.
+  O Serper só manda link em parte dos resultados; nos demais há o botão
+  "Pesquisar no Google" (busca por título + loja na aba Shopping), que não é o
+  anúncio usado na conta.
 - **Registro no banco:** a tabela `preco_mercado` guarda a última consulta de
   cada produto. Ela vale 7 dias (`ok`) ou 2 dias (`nao_encontrado`) antes de
   uma nova busca. Sem nenhuma fonte utilizável, nada é gravado.
