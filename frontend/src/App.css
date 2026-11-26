@@ -1720,6 +1720,22 @@ main {
   border-radius: var(--radius-sm);
 }
 
+/* Anuncios que formaram a faixa de preco de mercado. */
+.promo-anuncios {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.promo-anuncios a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 /* Justificativa escrita pelo modelo: a barra de acento a esquerda marca
    que o texto e "fala" da IA, nao mensagem do sistema. */
 .promo-justificativa {

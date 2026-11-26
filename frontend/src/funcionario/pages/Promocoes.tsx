@@ -20,6 +20,13 @@ interface SinaisDetectados {
   posicao_mercado?: number | null;
 }
 
+interface AnuncioMercado {
+  preco: number;
+  loja: string | null;
+  titulo: string | null;
+  link: string | null;
+}
+
 type PrecoMercado =
   | { status: "nao_encontrado" }
   | {
@@ -31,6 +38,7 @@ type PrecoMercado =
       fonte: string;
       // Ausente nas sugestões geradas antes de as lojas serem guardadas.
       lojas?: string[];
+      anuncios?: AnuncioMercado[];
       consultado_em: string;
     };
 
@@ -324,6 +332,7 @@ export default function Promocoes() {
           const mercado = resumoMercado(s.sinais_detectados);
           const precoMercado = s.sinais_detectados.preco_mercado;
           const lojas = precoMercado?.status === "ok" ? (precoMercado.lojas ?? []) : [];
+          const anuncios = precoMercado?.status === "ok" ? (precoMercado.anuncios ?? []) : [];
           return (
             <li key={s.id} className="promo-item">
               <div className="promo-linha">
@@ -380,13 +389,32 @@ export default function Promocoes() {
                   {mercado && (
                     <p className="promo-sinais">
                       {mercado}
-                      {lojas.length > 0 && (
+                      {anuncios.length === 0 && lojas.length > 0 && (
                         <>
                           <br />
                           Lojas dos preços usados: {lojas.join(", ")}
                         </>
                       )}
                     </p>
+                  )}
+                  {anuncios.length > 0 && (
+                    <ul className="promo-anuncios">
+                      {anuncios.map((a, i) => {
+                        const rotulo = a.titulo ?? "Anúncio sem título";
+                        return (
+                          <li key={i}>
+                            <strong>{formatBRL(a.preco)}</strong> · {a.loja ?? "Loja não informada"} ·{" "}
+                            {a.link ? (
+                              <a href={a.link} target="_blank" rel="noopener noreferrer">
+                                {rotulo}
+                              </a>
+                            ) : (
+                              rotulo
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   )}
                   <p className="promo-justificativa">"{s.justificativa_ia}"</p>
 

@@ -102,6 +102,28 @@ def test_lojas_do_serper_vao_pro_registro_e_pros_sinais(db_session):
     assert sinais["lojas"] == ["Kalunga", "Shopee"]
 
 
+def test_anuncios_usados_guardam_titulo_preco_e_so_link_http(db_session):
+    itens = [
+        {"price": "R$ 8,00", "source": "A", "title": "Cola 90g", "link": "https://loja.example/a"},
+        {"price": "R$ 9,00", "source": "B", "title": "Cola", "link": "javascript:alert(1)"},
+        {"price": "R$ 10,00", "source": "C"},
+        {"price": "R$ 900,00", "source": "D", "title": "Outlier", "link": "https://loja.example/d"},
+    ]
+    registro = market_price.obter_preco_mercado(
+        db_session,
+        _produto(db_session),
+        _buscador(lambda r: httpx.Response(200, json={"shopping": itens}), **COM_SERPER),
+    )
+    db_session.commit()
+
+    anuncios = market_price.para_sinais(registro, Decimal("20"))[0]["anuncios"]
+    assert anuncios == [
+        {"preco": 8.0, "loja": "A", "titulo": "Cola 90g", "link": "https://loja.example/a"},
+        {"preco": 9.0, "loja": "B", "titulo": "Cola", "link": None},
+        {"preco": 10.0, "loja": "C", "titulo": None, "link": None},
+    ]
+
+
 # --- fontes ------------------------------------------------------------
 
 

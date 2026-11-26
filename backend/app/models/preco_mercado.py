@@ -37,6 +37,8 @@ class PrecoMercado(Base):
     fonte: Mapped[str] = mapped_column(String(40), nullable=False)
     # Nomes das lojas dos precos usados na faixa. `fonte` e a API consultada.
     lojas: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    # Anuncios usados na faixa: preco, loja, titulo e link.
+    anuncios: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     status: Mapped[StatusPrecoMercado] = mapped_column(
         Enum(StatusPrecoMercado, values_callable=lambda e: [s.value for s in e]), nullable=False
     )

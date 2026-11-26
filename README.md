@@ -178,8 +178,9 @@ não mudam, e o piso continua sendo custo + margem mínima.
   `ML_CLIENT_ID`/`ML_CLIENT_SECRET`; há relatos de 403 mesmo com token) e,
   como alternativa, Google Shopping via [Serper](https://serper.dev)
   (`SERPER_API_KEY`).
-- **Lojas:** os nomes das lojas dos preços usados na faixa são guardados e
-  exibidos nos detalhes da sugestão (sem links).
+- **Anúncios usados:** preço, loja, título e link (quando a fonte informa) de
+  cada anúncio que entrou na faixa são guardados e listados nos detalhes da
+  sugestão. O preço é o do momento da consulta; a página pode mudar depois.
 - **Registro no banco:** a tabela `preco_mercado` guarda a última consulta de
   cada produto. Ela vale 7 dias (`ok`) ou 2 dias (`nao_encontrado`) antes de
   uma nova busca. Sem nenhuma fonte utilizável, nada é gravado.

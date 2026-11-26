@@ -62,12 +62,19 @@ class FaixaMercado:
     n_amostras: int
     # Lojas dos precos que entraram na conta, sem repetir, na ordem da busca.
     lojas: tuple[str, ...] = ()
+    # Os anuncios que entraram na conta, pra conferir de onde ela saiu.
+    anuncios: tuple[Anuncio, ...] = ()
 
 
 @dataclass(frozen=True)
 class Anuncio:
     preco: Decimal
     loja: str | None = None
+    titulo: str | None = None
+    link: str | None = None
+
+    def to_dict(self) -> dict:
+        return {"preco": float(self.preco), "loja": self.loja, "titulo": self.titulo, "link": self.link}
 
 
 def calcular_faixa(anuncios: list[Anuncio], *, min_amostras: int) -> FaixaMercado | None:
@@ -90,6 +97,7 @@ def calcular_faixa(anuncios: list[Anuncio], *, min_amostras: int) -> FaixaMercad
         maximo=quantizar_preco(max(filtrados)),
         n_amostras=len(filtrados),
         lojas=tuple(dict.fromkeys(a.loja for a in usados if a.loja)),
+        anuncios=tuple(usados),
     )
 
 
@@ -176,7 +184,12 @@ class BuscadorMercado:
         )
         resposta.raise_for_status()
         return [
-            Anuncio(Decimal(str(item["price"])), "Mercado Livre")
+            Anuncio(
+                Decimal(str(item["price"])),
+                "Mercado Livre",
+                _texto(item.get("title")),
+                _link(item.get("permalink")),
+            )
             for item in resposta.json()["results"]
             if item.get("price") is not None
             and item.get("currency_id", "BRL") == "BRL"
@@ -190,15 +203,22 @@ class BuscadorMercado:
             json={"q": consulta, "gl": "br", "hl": "pt-br"},
         )
         resposta.raise_for_status()
-        itens = (
-            (_preco_em_reais(item.get("price")), _nome_loja(item.get("source")))
-            for item in resposta.json().get("shopping", [])
-        )
-        return [Anuncio(preco, loja) for preco, loja in itens if preco is not None]
+        itens = ((_preco_em_reais(item.get("price")), item) for item in resposta.json().get("shopping", []))
+        return [
+            Anuncio(preco, _texto(item.get("source")), _texto(item.get("title")), _link(item.get("link")))
+            for preco, item in itens
+            if preco is not None
+        ]
 
 
-def _nome_loja(valor: object) -> str | None:
+def _texto(valor: object) -> str | None:
     return (valor.strip() or None) if isinstance(valor, str) else None
+
+
+def _link(valor: object) -> str | None:
+    """So http(s): o link vem de terceiro e vira `href` na tela."""
+    texto = _texto(valor)
+    return texto if texto and texto.lower().startswith(("https://", "http://")) else None
 
 
 def _agora() -> datetime:
@@ -249,6 +269,7 @@ def obter_preco_mercado(db: Session, produto: Produto, buscador: BuscadorMercado
     registro.n_amostras = faixa.n_amostras if faixa else 0
     registro.fonte = fonte
     registro.lojas = list(faixa.lojas) if faixa else None
+    registro.anuncios = [a.to_dict() for a in faixa.anuncios] if faixa else None
     registro.consultado_em = _agora()
     return registro
 
@@ -268,6 +289,7 @@ def para_sinais(registro: PrecoMercado | None, preco_atual: Decimal) -> tuple[di
         "n_amostras": registro.n_amostras,
         "fonte": registro.fonte,
         "lojas": registro.lojas or [],
+        "anuncios": registro.anuncios or [],
         "consultado_em": registro.consultado_em.isoformat(),
     }
     return dados, round(float(preco_atual / registro.preco_mediana), 4)
