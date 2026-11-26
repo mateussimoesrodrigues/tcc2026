@@ -44,6 +44,22 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     gemini_api_key: str = ""
 
+    # --- Preco de mercado de referencia (ver ai/market_price.py) ----------
+    # So ancora a sugestao do LLM; nao participa dos guard-rails abaixo.
+    preco_mercado_habilitado: bool = True
+    preco_mercado_n_resultados: int = 10
+    # Com menos amostras que isto (apos descartar outliers) o produto fica
+    # "sem referencia de mercado".
+    preco_mercado_min_amostras: int = 3
+    # Por quantos dias o registro gravado vale antes de buscar de novo.
+    preco_mercado_ttl_ok_dias: float = 7
+    preco_mercado_ttl_falha_dias: float = 2
+    # Mercado Livre (fonte principal): app em developers.mercadolivre.com.br.
+    ml_client_id: str = ""
+    ml_client_secret: str = ""
+    # Serper / Google Shopping (fonte alternativa): serper.dev.
+    serper_api_key: str = ""
+
     # --- Guard-rails de preco (ver services/price_service.py) -------------
     # Nenhuma promocao pode deixar o preco abaixo de
     # custo * (1 + margem_minima_percentual/100). E o piso que impede a IA

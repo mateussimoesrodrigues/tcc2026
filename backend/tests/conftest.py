@@ -6,8 +6,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import get_settings
 from app.core.database import Base, get_db
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _sem_credenciais_de_mercado(monkeypatch):
+    """Sem credencial, a busca de preco de mercado nao faz nenhuma chamada
+    HTTP -- mesmo que o `.env` da maquina tenha chaves reais."""
+    for campo in ("ml_client_id", "ml_client_secret", "serper_api_key"):
+        monkeypatch.setattr(get_settings(), campo, "")
 
 
 @pytest.fixture()

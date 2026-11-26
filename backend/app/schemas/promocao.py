@@ -16,6 +16,9 @@ class SugestaoRead(BaseModel):
 
     origem: OrigemSugestao
     sinais_detectados: dict
+    # True = a busca de mercado estava ligada e nao houve referencia.
+    # Sugestoes geradas com ela desligada (ou antes dela existir) ficam False.
+    sem_referencia_mercado: bool
     percentual_desconto_sugerido: Decimal
     preco_sugerido: Decimal
     justificativa_ia: str
@@ -39,6 +42,8 @@ class SugestaoRead(BaseModel):
             preco_normal=sugestao.produto.preco_normal,
             origem=sugestao.origem,
             sinais_detectados=sugestao.sinais_detectados,
+            sem_referencia_mercado=(sugestao.sinais_detectados.get("preco_mercado") or {}).get("status")
+            == "nao_encontrado",
             percentual_desconto_sugerido=sugestao.percentual_desconto_sugerido,
             preco_sugerido=sugestao.preco_sugerido,
             justificativa_ia=sugestao.justificativa_ia,

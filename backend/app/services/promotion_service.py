@@ -5,11 +5,13 @@ funcionario aprovar ou rejeitar (`routers/promotions.py`). Aprovacao
 delega pro `price_service` -- unico lugar que de fato muda o preco."""
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.ai import rules
+from app.ai import market_price, rules
 from app.ai.llm_provider import gerar_sugestao_llm
+from app.core.config import get_settings
 from app.models.historico_preco import TipoAlteracaoPreco
 from app.models.produto import Produto
 from app.models.promocao_sugestao import OrigemSugestao, PrioridadeSugestao, PromocaoSugestao, StatusSugestao
@@ -36,14 +38,33 @@ def _produtos_com_sugestao_pendente(db: Session) -> set[int]:
     return set(db.execute(stmt).scalars())
 
 
+def _anexar_preco_mercado(db: Session, candidatos: list[rules.SinaisProduto]) -> None:
+    """Preenche `preco_mercado`/`posicao_mercado` de cada candidato. Commita
+    registro a registro, antes da etapa do LLM, pra uma falha mais adiante
+    nao jogar fora buscas ja feitas."""
+    if not get_settings().preco_mercado_habilitado:
+        return
+
+    with httpx.Client(timeout=market_price.TIMEOUT_SEGUNDOS) as client:
+        buscador = market_price.BuscadorMercado(client)
+        for sinais in candidatos:
+            produto = db.get(Produto, sinais.produto_id)
+            registro = market_price.obter_preco_mercado(db, produto, buscador)
+            sinais.preco_mercado, sinais.posicao_mercado = market_price.para_sinais(
+                registro, produto.preco_vigente
+            )
+            db.commit()
+
+
 def gerar_sugestoes(db: Session) -> dict:
-    """Roda as regras, chama o LLM pra cada candidato que ainda nao tem
+    """Roda as regras, busca o preco de mercado, chama o LLM pra cada candidato que ainda nao tem
     sugestao pendente em aberto, grava as sugestoes validas. Devolve um
     resumo (criadas/falhas) -- unico chamador e o endpoint disparado pelo
     clique em "Gerar sugestoes agora", que usa isso pra dar feedback
     imediato na tela."""
     candidatos = rules.gerar_candidatos(db)
     ja_pendentes = _produtos_com_sugestao_pendente(db)
+    _anexar_preco_mercado(db, [s for s in candidatos if s.produto_id not in ja_pendentes])
 
     criadas: list[PromocaoSugestao] = []
     falhas: list[dict] = []

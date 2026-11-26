@@ -16,6 +16,7 @@ from app.models.historico_preco import HistoricoPreco
 from app.models.display import Display
 from app.models.simulacao_venda import SimulacaoVendaExecucao
 from app.models.job_atualizacao import JobAtualizacao
+from app.models.preco_mercado import PrecoMercado
 
 __all__ = [
     "Categoria",
@@ -33,4 +34,5 @@ __all__ = [
     "Display",
     "SimulacaoVendaExecucao",
     "JobAtualizacao",
+    "PrecoMercado",
 ]

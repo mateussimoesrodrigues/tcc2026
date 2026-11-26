@@ -41,5 +41,11 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: ML_CLIENT_ID
+        sync: false
+      - key: ML_CLIENT_SECRET
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
       - key: SIMULATION_API_KEY
         sync: false

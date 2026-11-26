@@ -66,6 +66,13 @@ class SinaisProduto:
     # LLM no prompt e decidido por `Settings.informar_piso_no_prompt` --
     # justamente pra dar pra medir o efeito disso (scripts/avaliar_llm.py).
     desconto_maximo_permitido: float | None = None
+    # Preenchidos depois das regras, por `promotion_service` (ver
+    # `ai/market_price.para_sinais`): as regras continuam sem chamar API
+    # externa. `preco_mercado` None = busca desligada; senao tem `status`
+    # "ok" (com faixa) ou "nao_encontrado". `posicao_mercado` e
+    # preco atual / mediana.
+    preco_mercado: dict | None = None
+    posicao_mercado: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

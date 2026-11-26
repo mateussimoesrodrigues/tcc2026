@@ -62,6 +62,31 @@ class SugestaoLLM:
     modelo_usado: str
 
 
+def _linhas_mercado(sinais: SinaisProduto) -> list[str]:
+    """Bloco do prompt com a referencia de mercado. Vazio quando nao ha
+    referencia, deixando o prompt igual ao de sem busca. As instrucoes vao
+    aqui, e nao no prompt de sistema, pelo mesmo motivo."""
+    mercado = sinais.preco_mercado
+    if not mercado or mercado.get("status") != "ok" or sinais.posicao_mercado is None:
+        return []
+
+    diferenca = (sinais.posicao_mercado - 1) * 100
+    if abs(diferenca) < 0.5:
+        comparacao = "em linha com a mediana do mercado"
+    else:
+        comparacao = f"{abs(diferenca):.0f}% {'acima' if diferenca > 0 else 'abaixo'} da mediana do mercado"
+
+    return [
+        f"Preco de mercado ({mercado['n_amostras']} anuncios): mediana R$ {mercado['mediana']:.2f}, "
+        f"faixa de R$ {mercado['min']:.2f} a R$ {mercado['max']:.2f}",
+        f"Posicao do preco atual: {comparacao}",
+        "Use a mediana do mercado como ancora do desconto e cite essa comparacao na justificativa. "
+        "Se o preco ja esta abaixo do mercado, prefira um desconto menor. A referencia de mercado "
+        "nunca autoriza passar do desconto maximo da loja: se igualar o mercado exigir mais que "
+        "isso, nao acompanhe o mercado.",
+    ]
+
+
 def _montar_prompt_usuario(sinais: SinaisProduto) -> str:
     linhas = [
         f"Produto: {sinais.nome}"
@@ -87,6 +112,7 @@ def _montar_prompt_usuario(sinais: SinaisProduto) -> str:
     else:
         linhas.append("Custo do produto nao informado -- estimativa de margem indisponivel")
     linhas.append(f"Proxima data comemorativa: {sinais.proxima_data_sazonal}, em {sinais.dias_ate_data_sazonal} dias")
+    linhas.extend(_linhas_mercado(sinais))
     # Informar o teto no proprio prompt tende a reduzir resposta invalida,
     # mas isso e uma hipotese -- por isso fica atras de uma flag, pro
     # harness (scripts/avaliar_llm.py) conseguir medir os dois bracos.

@@ -76,6 +76,7 @@ from app.models import (
     MovimentacaoEstoque,
     Pedido,
     PedidoItem,
+    PrecoMercado,
     Produto,
     ProdutoCodigo,
     PromocaoSugestao,
@@ -484,6 +485,7 @@ def limpar_tabelas(session) -> None:
     session.query(Estoque).delete()
     session.query(ProdutoCodigo).delete()
     session.query(PromocaoSugestao).delete()
+    session.query(PrecoMercado).delete()
     session.query(Pedido).delete()
     session.query(Produto).delete()
     session.query(SessaoCarrinho).delete()

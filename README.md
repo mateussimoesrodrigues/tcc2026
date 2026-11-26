@@ -165,6 +165,30 @@ citar os parâmetros na monografia):
 > dataset. A versão anterior do seed (catálogo da planilha da loja + 90 dias
 > simulados) está no histórico do git.
 
+#### Preço de mercado de referência
+
+Antes de chamar o LLM, cada candidato a promoção recebe uma referência de
+mercado (`app/ai/market_price.py`): mediana, mínimo, máximo e número de
+amostras dos primeiros `PRECO_MERCADO_N_RESULTADOS` resultados, descartando
+preços mais de 3× acima ou abaixo da mediana. O prompt recebe a faixa e a
+posição do preço atual (preço atual / mediana). É só âncora: os guard-rails
+não mudam, e o piso continua sendo custo + margem mínima.
+
+- **Fontes:** Mercado Livre (`/sites/MLB/search`, exige OAuth:
+  `ML_CLIENT_ID`/`ML_CLIENT_SECRET`; há relatos de 403 mesmo com token) e,
+  como alternativa, Google Shopping via [Serper](https://serper.dev)
+  (`SERPER_API_KEY`).
+- **Registro no banco:** a tabela `preco_mercado` guarda a última consulta de
+  cada produto. Ela vale 7 dias (`ok`) ou 2 dias (`nao_encontrado`) antes de
+  uma nova busca. Sem nenhuma fonte utilizável, nada é gravado.
+- **Sem referência:** a sugestão é gerada como antes e aparece na tela com o
+  selo "Sem referência de mercado". `PRECO_MERCADO_HABILITADO=false` desliga
+  a busca e o selo.
+- **Limitação:** a busca é textual (marca + nome) e não confere se o anúncio
+  é o mesmo produto, na mesma quantidade (unidade × kit). A faixa e o número
+  de amostras ficam visíveis nos detalhes da sugestão para o funcionário
+  julgar.
+
 #### Avaliação do LLM (evidência experimental)
 
 ```bash

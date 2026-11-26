@@ -15,7 +15,27 @@ interface SinaisDetectados {
   margem: number | null;
   proxima_data_sazonal: string;
   dias_ate_data_sazonal: number;
+  // Ausente nas sugestões antigas; null com a busca de mercado desligada.
+  preco_mercado?: PrecoMercado | null;
+  posicao_mercado?: number | null;
 }
+
+type PrecoMercado =
+  | { status: "nao_encontrado" }
+  | {
+      status: "ok";
+      mediana: number;
+      min: number;
+      max: number;
+      n_amostras: number;
+      fonte: string;
+      consultado_em: string;
+    };
+
+const FONTE_MERCADO: Record<string, string> = {
+  mercado_livre: "Mercado Livre",
+  google_shopping: "Google Shopping",
+};
 
 interface Sugestao {
   id: number;
@@ -25,6 +45,7 @@ interface Sugestao {
   produto_tamanho: string | null;
   preco_normal: string;
   sinais_detectados: SinaisDetectados;
+  sem_referencia_mercado: boolean;
   percentual_desconto_sugerido: string;
   preco_sugerido: string;
   justificativa_ia: string;
@@ -125,6 +146,23 @@ function resumoSinais(s: SinaisDetectados): string {
     partes.push(`margem ~${formatPercentFracao(s.margem, 0)}`);
   }
   partes.push(`${s.proxima_data_sazonal} em ${contar(s.dias_ate_data_sazonal, "dia", "dias")}`);
+  return partes.join(" · ");
+}
+
+function resumoMercado({ preco_mercado: m, posicao_mercado: posicao }: SinaisDetectados): string | null {
+  if (m?.status !== "ok") return null;
+  const partes = [
+    `Mercado: mediana ${formatBRL(m.mediana)} (de ${formatBRL(m.min)} a ${formatBRL(m.max)})`,
+    `${contar(m.n_amostras, "amostra", "amostras")} no ${FONTE_MERCADO[m.fonte] ?? m.fonte}`,
+  ];
+  if (posicao != null) {
+    const diferenca = Math.round((posicao - 1) * 100);
+    partes.push(
+      diferenca === 0
+        ? "preço atual em linha com o mercado"
+        : `preço atual ${formatPercent(Math.abs(diferenca), 0)} ${diferenca > 0 ? "acima" : "abaixo"} do mercado`
+    );
+  }
   return partes.join(" · ");
 }
 
@@ -281,6 +319,7 @@ export default function Promocoes() {
           const aberta = abertas[s.id] === true;
           const prioridade = PRIORIDADE[s.prioridade];
           const detalhe = [s.produto_marca, s.produto_tamanho].filter(Boolean).join(" · ");
+          const mercado = resumoMercado(s.sinais_detectados);
           return (
             <li key={s.id} className="promo-item">
               <div className="promo-linha">
@@ -303,7 +342,16 @@ export default function Promocoes() {
                   <Badge tone="promo">−{formatPercent(s.percentual_desconto_sugerido, 0)}</Badge>
                 </div>
 
-                <p className="promo-motivo">{s.justificativa_ia}</p>
+                <p className="promo-motivo">
+                  {s.sem_referencia_mercado && (
+                    <>
+                      <Badge tone="neutral" title="A busca não encontrou preços de mercado para este produto.">
+                        Sem referência de mercado
+                      </Badge>{" "}
+                    </>
+                  )}
+                  {s.justificativa_ia}
+                </p>
 
                 <Badge tone={prioridade.tom}>{prioridade.rotulo}</Badge>
 
@@ -325,6 +373,7 @@ export default function Promocoes() {
               {aberta && (
                 <div id={`promo-detalhes-${s.id}`} className="promo-detalhes">
                   <p className="promo-sinais">{resumoSinais(s.sinais_detectados)}</p>
+                  {mercado && <p className="promo-sinais">{mercado}</p>}
                   <p className="promo-justificativa">"{s.justificativa_ia}"</p>
 
                   <label className="promo-observacao-campo">
